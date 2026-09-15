@@ -66,11 +66,12 @@ The Phase 1 implementation adapts the established build, CMake, provenance, sign
 
 ### 5. CI and shell coverage
 
-1. Add `.github/workflows/ci.yml` with bare `pull_request`, pushes to `main`, `workflow_dispatch`, concurrency cancellation, and read-only permissions. Its `paths-ignore` excludes only documentation, licensing, and agent-configuration changes because all of its jobs are macOS build or bundle checks.
+1. Add `.github/workflows/ci.yml` with bare `pull_request`, pushes to `main`, `workflow_dispatch`, concurrency cancellation, and read-only permissions. Its `paths-ignore` excludes only documentation, licensing, and agent-configuration changes because all of its jobs are build or bundle checks.
 2. Call `cboone/gh-actions` v3.2.0 at `0d53592f40b487f01b26b374e539c517fa9c570f` for the macOS Zig workflow. Pass `build.zig.zon` as the toolchain source, use `macos-latest`, disable cross-compilation, and carry an eight-minute timeout until Phase 1 run measurements replace it.
-3. Add macOS jobs for `test-safe` and `test-release`, the host-harness stub, and the bundle gate. The bundle gate installs clap-validator 0.4.1 at commit `152b9823e992d782c5c1fd33bca0295478b919aa` with Rust 1.97.1 through the released `set-up-clap-validator` composite action, validates both CLAP bundles, extracts the component’s `AudioComponents.0.type`, runs both plist scripts in check mode, verifies every bundle’s ad-hoc signature, and reads every provenance marker.
-4. Replace `text-lint.yml`’s reusable `shell` caller with an inline Ubuntu job. It installs and reports pinned shfmt 3.13.1 and ShellCheck 0.11.0, discovers tracked shell files by shebang with `git ls-files -z | xargs -0 shfmt -f`, then runs `shfmt -d` and `shellcheck` over exactly that list. This job retains no `paths-ignore`, so an `.editorconfig` profile change is checked.
-5. Preserve the current workflow guarantees: full-SHA pins with version comments, no `paths-ignore` in text or secret workflows, a bare `pull_request:`, and actionlint run with ShellCheck on `PATH`.
+3. Add an Ubuntu job using the Zig version from `build.zig.zon`; run `zig build test`, `zig build test-safe`, `zig build test-release`, and `zig build smoke` there to enforce the non-Darwin build path and execute the host-harness stub.
+4. Add macOS jobs for `test-safe` and `test-release`, the host-harness stub, and the bundle gate. The bundle gate installs clap-validator 0.4.1 at commit `152b9823e992d782c5c1fd33bca0295478b919aa` with Rust 1.97.1 through the released `set-up-clap-validator` composite action, validates both CLAP bundles, extracts the component’s `AudioComponents.0.type`, runs both plist scripts in check mode, verifies every bundle’s ad-hoc signature, and reads every provenance marker.
+5. Replace `text-lint.yml`’s reusable `shell` caller with an inline Ubuntu job. It installs and reports pinned shfmt 3.13.1 and ShellCheck 0.11.0, discovers tracked shell files by shebang with `git ls-files -z | xargs -0 shfmt -f`, then runs `shfmt -d` and `shellcheck` over exactly that list. This job retains no `paths-ignore`, so an `.editorconfig` profile change is checked.
+6. Preserve the current workflow guarantees: full-SHA pins with version comments, no `paths-ignore` in text or secret workflows, a bare `pull_request:`, and actionlint run with ShellCheck on `PATH`.
 
 ### 6. Documentation and review surface
 
@@ -89,6 +90,7 @@ The Phase 1 implementation adapts the established build, CMake, provenance, sign
 
 | Planted defect                                          | Instrument expected to catch it  | What actually happened                          | Test that covers it now                                                            |
 | ------------------------------------------------------- | -------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Change an asserted CLAP ABI field offset                | The ABI layout unit test         | Record the failing assertion and exit status    | `@offsetOf` comptime assertion for the affected CLAP structure                     |
 | Change `features[0]` from `instrument`                  | The descriptor-feature unit test | Record the failing assertion and exit status    | Unit test comparing the descriptor’s first feature with the restated CLAP constant |
 | Change `AUV2_INSTRUMENT_TYPE` from `aumu`               | The CI plist-type extraction     | Record the red CI step and extracted value      | Bundle-gate `plutil` assertion over the emitted component plist                    |
 | Add an SC2086 defect to an extensionless tracked script | The `text-lint.yml` shell job    | Record the ShellCheck diagnostic and job result | Shebang discovery followed by ShellCheck                                           |
@@ -98,7 +100,7 @@ Before planting, commit the corresponding control and verify the clean head. Pla
 ## Verification
 
 1. Run `npm ci`, then `npm run format:check` and `npm run lint:md`; run `typos`, `shellcheck --version && actionlint`, and `gitleaks detect --no-banner`.
-2. Run `zig fmt --check build.zig src/`, `zig build`, `zig build test`, `zig build test-safe`, `zig build test-release`, `zig build smoke`, and `zig build validate`.
+2. On macOS, run `zig fmt --check build.zig src/`, `zig build`, `zig build test`, `zig build test-safe`, `zig build test-release`, `zig build smoke`, and `zig build validate`. On Linux, run `zig build test`, `zig build test-safe`, `zig build test-release`, and `zig build smoke`, matching the CI coverage of the supported non-Darwin path.
 3. Run `scripts/build-audio-unit`, then validate `build/assets/Savera.clap`; extract `AudioComponents.0.type` from `build/assets/Savera.component/Contents/Info.plist`; run both plist scripts with `--check`; run `scripts/assert-adhoc-signature` and `scripts/read-provenance --check` over every produced bundle.
 4. Complete the three plant rows, rerun the full clean-tree gate, and record run URLs, tool versions, job durations, and plant results in the phase outcomes.
 5. Perform the Logic gate after `zig build --release=fast install-plugins` and a matching installed-bundle provenance check:
