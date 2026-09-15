@@ -6,7 +6,7 @@ applyTo: "**/*.zig,**/*.zig.zon"
 
 For repo-wide conventions, see [`copilot-instructions.md`](copilot-instructions.md) and `AGENTS.md` at the repository root.
 
-There is no Zig in the repository before Phase 1. These entries are conventions the ADRs already settled, recorded so the first review does not relitigate them.
+The Phase 1 shell uses Zig 0.16.0. These entries are conventions the ADRs already settled, recorded so review does not relitigate them.
 
 - **Nothing under `src/model/` may name the CLAP bindings, a sample offset or a note id.** The CLAP half is enforced mechanically: a test walks that directory from the source root at run time and fails on any mention of `clap/c.zig` or an import resolving to the CLAP bindings. The sample-offset and note-id half has no distinctive import to detect and is held by review, so flag either one appearing under `src/model/`. If a change appears to need a CLAP type or a note id there, the value belongs in `src/engine/` or should be threaded in as a plain argument. See [ADR 0005](../docs/adr/0005-a-pure-model-core-behind-a-seam.md).
 - **Fixed-capacity structures on the audio path are not premature optimization.** Nothing reachable from `process()` may allocate, lock, or make a syscall, so a growable container there is a defect rather than a simplification. Capacities are derived in one place with the derivation beside them. See [ADR 0007](../docs/adr/0007-no-allocation-on-the-audio-thread.md).

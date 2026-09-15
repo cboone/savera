@@ -13,7 +13,7 @@ What runs on a push or a pull request, what each job actually judges, and the co
 | `gitleaks.yml`   | `gitleaks`   | `gitleaks / Validate inputs`, `gitleaks / gitleaks`       | gitleaks over the full history, with `.gitleaks.toml`, which it discovers in the source directory without `allowlist-config`      |
 | `trufflehog.yml` | `trufflehog` | `trufflehog / Validate inputs`, `trufflehog / trufflehog` | TruffleHog over the full history. **Cannot fail**; see below                                                                      |
 
-`ci.yml`, the Zig build, test and bundle workflow, arrives in Phase 1 with `build.zig.zon`, which it reads for the toolchain.
+`ci.yml` reads Zig 0.16.0 from `build.zig.zon`. Its Linux job runs the three test modes and the smoke harness without describing CMake; its macOS reusable job builds the direct CLAP. Bundle validation remains a macOS local gate until its dedicated CI job lands.
 
 ## Conventions every workflow follows
 

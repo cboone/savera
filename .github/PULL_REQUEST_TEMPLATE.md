@@ -27,6 +27,7 @@ The checks below are the ones that exist today. Each phase adds its own lines as
 - [ ] `gitleaks detect --no-banner` reports no leaks (the TruffleHog CI job cannot fail, so gitleaks is the secret check that counts)
 - [ ] If I touched anything under `.github/workflows/`, `actionlint` is silent, run with `shellcheck` on `PATH`
 - [ ] If I touched a shell script, `shfmt -d` and `shellcheck` are both silent
+- [ ] If I touched Zig, `zig fmt --check build.zig src/`, `zig build test`, and `zig build smoke` are clean
 - [ ] `docs/design/` is byte-identical: `git diff --exit-code origin/main -- docs/design/` prints nothing
 - [ ] `AGENTS.md` is under 30,000 characters (`wc -c AGENTS.md`) and `CLAUDE.md` is still a symlink to it
 - [ ] The build plan is still at `docs/plans/2026-09-13-savera-build-plan.md`

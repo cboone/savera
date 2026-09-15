@@ -23,7 +23,7 @@ Several are **refusals**: things the project considered and declined. Savera mod
 
 ### Requirements
 
-Before Phase 1 there is no code, so everything here is static analysis over text. The build toolchain arrives with the Phase 1 skeleton.
+The buildable shell requires Zig 0.16.0, CMake, and clap-validator in addition to the text tools.
 
 - **Node.js 22 or later**, for the text lint tools. `markdownlint-cli2` and `markdownlint-rule-relative-links` both require it, and `.npmrc` sets `engine-strict=true`, so `npm ci` fails at once with `EBADENGINE` on an older runtime. CI runs Node 24.
 - **typos**, **actionlint**, **shellcheck**, **shfmt** and **gitleaks**: `brew install typos-cli actionlint shellcheck shfmt gitleaks`. actionlint needs shellcheck on `PATH`, or it skips every `run:` block and still exits 0. shfmt has no script to check before Phase 1, but the pull request template asks for it on any shell change.
@@ -47,6 +47,9 @@ npm run lint:md                    # markdownlint, including every relative link
 typos                              # spell check
 shellcheck --version && actionlint # the workflows
 gitleaks detect --no-banner        # secrets
+zig fmt --check build.zig src/     # Zig formatting
+zig build test && zig build smoke  # CLAP boundary and host harness
+zig build audio-unit               # wrapper-built CLAP and AUv2 component
 ```
 
 ### Files that must not be changed

@@ -1,5 +1,9 @@
 # Skill deviations
 
+## Phase 1 shell tooling
+
+`write-bash-scripts` supplies Bash 3.2-compatible structure and ShellCheck validation for the extensionless scripts under `scripts/` and `cmake/`. The project rule against `markdownlint-cli2 --fix` continues to replace the Markdown skill's generic fixer with `npm run format` followed by `npm run lint:md`.
+
 The build plan found that the catalog's Zig and audio skills were unwritten when this project started, so the first phases are done by hand from fosforo and springer. This note records every rule written by hand that a catalog skill would otherwise supply, against the issue that asks for that skill, so the skills can be written from this project. It also records where an installed skill was scoped down, replaced, or found wrong.
 
 **The inclusion rule.** An issue gets an entry when a phase wrote any of its rules into a file by hand, whether as configuration or as a recorded decision. Each entry says what was written, where, and where it diverges from the issue body. Later phases append to the same entries rather than starting new ones.
