@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# narrow-au-resource-usage — remove incompatible AU resource usage metadata
+set -euo pipefail
+function main() {
+	local check=false plist=""
+	[[ "${1:-}" == "--check" ]] && {
+		check=true
+		shift
+	}
+	[[ ${#} -eq 1 ]] || {
+		echo "usage: narrow-au-resource-usage [--check] <Info.plist>" >&2
+		return 64
+	}
+	plist="${1}"
+	[[ -f "${plist}" ]] || return 66
+	if [[ "${check}" == true ]]; then
+		! plutil -extract AudioComponents.0.resourceUsage raw -o - -- "${plist}" >/dev/null 2>&1 && [[ "$(plutil -extract AudioComponents.0.sandboxSafe raw -o - -- "${plist}")" == "true" ]]
+		return
+	fi
+	plutil -remove AudioComponents.0.resourceUsage -- "${plist}"
+}
+main "$@"

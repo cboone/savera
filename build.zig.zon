@@ -1,0 +1,22 @@
+.{
+    .name = .savera,
+    .version = "0.0.0",
+    .fingerprint = 0xbfd23c003907d530,
+    .minimum_zig_version = "0.16.0",
+    .dependencies = .{
+        .clap = .{
+            .url = "https://github.com/free-audio/clap/archive/refs/tags/1.2.10.tar.gz",
+            .hash = "N-V-__8AAB-JOwBFtOGup87WSc2jjAlPh8eIMTZnpkjysvO1",
+        },
+    },
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+        "cmake",
+        "macos",
+        "scripts",
+        "LICENSE",
+        "README.md",
+    },
+}
