@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["docs/**", "*.md", "LICENSE", "AGENTS.md", "CLAUDE.md", ".github/*.instructions.md"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    uses: cboone/gh-actions/.github/workflows/run-zig-ci.yml@0d53592f40b487f01b26b374e539c517fa9c570f # v3.2.0
+    with:
+      zig-version-file: build.zig.zon
+      runs-on: macos-latest
+      run-cross-compile: false
+      timeout-minutes: 8
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+        with:
+          version: 0.16.0
+      - run: zig build test
+      - run: zig build test-safe
+      - run: zig build test-release
+      - run: zig build smoke

@@ -77,9 +77,18 @@ jobs:
   #
   #   git ls-files -z | xargs -0 shfmt -f | xargs -r shellcheck
   shell:
-    uses: cboone/gh-actions/.github/workflows/lint-shell.yml@0d53592f40b487f01b26b374e539c517fa9c570f # v3.2.0
-    with:
-      timeout-minutes: 3
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: mvdan/sh@2c2c6f209eb653c56cda4edd1a5409e92cb80a8a # v3.13.1
+        with:
+          version: v3.13.1
+      - uses: ludeeus/action-shellcheck@a95b61f6de2c98d09472f830fb2ad4a6de117213 # v2.0.0
+      - name: Check shell scripts
+        run: |
+          git ls-files -z | xargs -0 shfmt -f | xargs -r shfmt -d
+          git ls-files -z | xargs -0 shfmt -f | xargs -r shellcheck
 
   # Since v3.2.0 this installs a pinned, checksum-verified shellcheck and
   # reports both tool versions before running actionlint
