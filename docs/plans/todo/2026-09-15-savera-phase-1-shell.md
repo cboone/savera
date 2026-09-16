@@ -102,7 +102,7 @@ Before planting, commit the corresponding control and verify the clean head. Pla
 1. Run `npm ci`, then `npm run format:check` and `npm run lint:md`; run `typos`, `shellcheck --version && actionlint`, and `gitleaks detect --no-banner`.
 2. On macOS, run `zig fmt --check build.zig src/`, `zig build`, `zig build test`, `zig build test-safe`, `zig build test-release`, `zig build smoke`, and `zig build validate`. On Linux, run `zig build test`, `zig build test-safe`, `zig build test-release`, and `zig build smoke`, matching the CI coverage of the supported non-Darwin path.
 3. Run `scripts/build-audio-unit`, then validate `build/assets/Savera.clap`; extract `AudioComponents.0.type` from `build/assets/Savera.component/Contents/Info.plist`; run both plist scripts with `--check`; run `scripts/assert-adhoc-signature` and `scripts/read-provenance --check` over every produced bundle.
-4. Complete the three plant rows, rerun the full clean-tree gate, and record run URLs, tool versions, job durations, and plant results in the phase outcomes.
+4. Complete all four plant rows, rerun the full clean-tree gate, and record run URLs, tool versions, job durations, and plant results in the phase outcomes.
 5. Perform the Logic gate after `zig build --release=fast install-plugins` and a matching installed-bundle provenance check:
    - **Setup:** Open a new Logic software-instrument track after the installed CLAP and component hashes and provenance match the build under test.
    - **Action:** Locate `Catamount: Savera` in the software-instrument list, insert it, then play and release a MIDI key.

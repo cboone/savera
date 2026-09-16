@@ -17,10 +17,17 @@ pub fn build(b: *std.Build) void {
     b.getInstallStep().dependOn(&binary.step);
     b.getInstallStep().dependOn(&plist.step);
     if (target.result.os.tag == .macos) {
-        const sign = b.addSystemCommand(&.{ "/usr/bin/codesign", "--sign", b.option([]const u8, "signing-identity", "Release signing identity") orelse "-" });
+        const remove_signature = b.addSystemCommand(&.{ "/usr/bin/codesign", "--remove-signature" });
+        remove_signature.addArg(b.getInstallPath(.prefix, "Savera.clap"));
+        remove_signature.step.dependOn(&binary.step);
+        remove_signature.step.dependOn(&plist.step);
+        const identity = b.graph.environ_map.get("SAVERA_SIGNING_IDENTITY") orelse "-";
+        const sign = b.addSystemCommand(&.{ "/usr/bin/codesign", "--sign", if (identity.len == 0) "-" else identity });
+        if (identity.len != 0 and !std.mem.eql(u8, identity, "-")) sign.addArgs(&.{ "--timestamp", "--options", "runtime" });
         sign.addArg(b.getInstallPath(.prefix, "Savera.clap"));
         sign.step.dependOn(&binary.step);
         sign.step.dependOn(&plist.step);
+        sign.step.dependOn(&remove_signature.step);
         b.getInstallStep().dependOn(&sign.step);
     }
 
@@ -32,10 +39,10 @@ pub fn build(b: *std.Build) void {
     b.step("smoke", "Run the CLAP host smoke harness").dependOn(&run_smoke.step);
 
     if (target.result.os.tag != .macos) return;
-    const validate = b.addSystemCommand(&.{ "./scripts/read-provenance", "--check" });
+    const validate = b.addSystemCommand(&.{ "clap-validator", "validate" });
     validate.addArg(b.getInstallPath(.prefix, "Savera.clap"));
     validate.step.dependOn(b.getInstallStep());
-    b.step("validate", "Check direct CLAP provenance").dependOn(&validate.step);
+    b.step("validate", "Validate the direct CLAP").dependOn(&validate.step);
     const audio_unit = b.addSystemCommand(&.{"./scripts/build-audio-unit"});
     audio_unit.stdio = .inherit;
     b.step("audio-unit", "Build Savera.component through CMake").dependOn(&audio_unit.step);
@@ -66,6 +73,7 @@ fn moduleWithRoot(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     const result = b.createModule(.{ .root_source_file = b.path(root), .target = target, .optimize = optimize });
     result.addImport("build_options", options.createModule());
     result.addImport("clap_c", translateClap(b, target, optimize));
+    result.addAnonymousImport("provenance_script", .{ .root_source_file = b.path("scripts/read-provenance") });
     return result;
 }
 

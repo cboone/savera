@@ -29,9 +29,42 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
-        with:
-          version: 0.16.0
       - run: zig build test
       - run: zig build test-safe
       - run: zig build test-release
       - run: zig build smoke
+
+  macos-tests:
+    runs-on: macos-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+      - run: zig build test-safe
+      - run: zig build test-release
+      - run: zig build smoke
+
+  bundles:
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: mlugg/setup-zig@d1434d08867e3ee9daa34448df10607b98908d29 # v2
+      - run: zig build --release=fast
+      - run: scripts/build-audio-unit
+      - name: Assert Audio Unit instrument type
+        run: |
+          au_type="$(plutil -extract AudioComponents.0.type raw -o - -- build/assets/Savera.component/Contents/Info.plist)"
+          echo "Audio Unit type: ${au_type}"
+          test "${au_type}" = aumu
+      - name: Check bundle metadata, signatures and provenance
+        run: |
+          cmake/narrow-au-resource-usage --check build/assets/Savera.component/Contents/Info.plist
+          cmake/set-au-display-name --check build/assets/Savera.component/Contents/Info.plist
+          scripts/assert-adhoc-signature zig-out/Savera.clap build/assets/Savera.clap build/assets/Savera.component
+          scripts/read-provenance --check zig-out/Savera.clap build/assets/Savera.clap build/assets/Savera.component
+      - uses: cboone/gh-actions/actions/set-up-clap-validator@0d53592f40b487f01b26b374e539c517fa9c570f # v3.2.0
+        with:
+          validator-rev: 152b9823e992d782c5c1fd33bca0295478b919aa
+          rust-version: 1.97.1
+      - run: clap-validator validate zig-out/Savera.clap build/assets/Savera.clap

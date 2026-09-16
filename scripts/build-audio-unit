@@ -2,14 +2,17 @@
 # build-audio-unit — configure and build Savera's clap-wrapper projection
 set -euo pipefail
 function main() {
+	[[ ${#} -le 1 ]] || {
+		echo "usage: build-audio-unit [--reconfigure]" >&2
+		return 64
+	}
 	case "${1:-}" in "") ;; --reconfigure) cmake -B build cmake ;; *)
 		echo "usage: build-audio-unit [--reconfigure]" >&2
 		return 64
 		;;
 	esac
-	[[ -d build ]] || cmake -B build cmake
+	# Reconfigure to refresh environment-supplied signing options and header checks.
+	cmake -B build cmake
 	cmake --build build --target savera_all
-	/usr/bin/codesign --sign "${SAVERA_SIGNING_IDENTITY:--}" build/assets/Savera.component
-	/usr/bin/codesign --sign "${SAVERA_SIGNING_IDENTITY:--}" build/assets/Savera.clap
 }
 main "$@"

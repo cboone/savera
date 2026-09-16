@@ -19,6 +19,9 @@ function main() {
 		echo "usage: install-plugins" >&2
 		return 64
 	}
+	./scripts/read-provenance --check "${CLAP_SOURCE}" "${AU_SOURCE}"
+	/usr/bin/codesign --verify --strict "${CLAP_SOURCE}"
+	/usr/bin/codesign --verify --strict "${AU_SOURCE}"
 	install_one "${CLAP_SOURCE}" "${HOME}/Library/Audio/Plug-Ins/CLAP"
 	install_one "${AU_SOURCE}" "${HOME}/Library/Audio/Plug-Ins/Components"
 }

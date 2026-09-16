@@ -4,13 +4,13 @@
 
 Savera is a modulatable synthesizer modeling a pressure-blown Kolkata-style Indian hand harmonium (peti), authored in Zig as a CLAP instrument and wrapped as an AUv2 for macOS. Physical realism comes from the acoustics literature and recordings; every per-sample physical quantity is exposed for modulation. Product/display spelling is `Savera`; repository and files use ASCII `savera`.
 
-The foundation is complete; this checkout has no `build.zig`, `build.zig.zon` or `src/` yet. The permanent [build plan](docs/plans/2026-09-13-savera-build-plan.md) owns sequencing, source layout, findings, verification and phase outcomes. It never leaves `docs/plans/`. Per-phase plans use `todo/` and move to `done/` when their PR merges.
+The foundation is complete. Phase 1 adds a buildable CLAP and AUv2 shell with a placeholder sine; its planted controls and Logic instrument gate determine completion. The permanent [build plan](docs/plans/2026-09-13-savera-build-plan.md) owns sequencing, source layout, findings, verification and phase outcomes. It never leaves `docs/plans/`. Per-phase plans use `todo/` and move to `done/` when their PR merges.
 
 ## Settled constraints
 
 Read the relevant [ADRs](docs/adr/README.md) before implementation. Supersede decisions with an amendment or a new ADR; do not relitigate them in review.
 
-- macOS on Apple Silicon only; Zig 0.16.0 is pinned in `build.zig.zon` when it lands, and CI reads that source. Author CLAP once and wrap outward; pass AU type `aumu` explicitly and verify the built plist.
+- macOS on Apple Silicon only; Zig 0.16.0 is pinned in `build.zig.zon`, and CI reads that source. Author CLAP once and wrap outward; pass AU type `aumu` explicitly and verify the built plist.
 - Generate CLAP bindings with `translate-c` after `zig cc -E -P`, with comptime layout assertions. `src/model/` names no CLAP types, sample offsets or note IDs. Preserve the CLAP source walk and review the other boundaries.
 - No WebView UI. Nothing reachable from the audio thread allocates, locks or makes syscalls. Derive capacities centrally; use single-writer relaxed atomics drained on the main thread for cross-thread state.
 - Stable `clap_id` identifies parameters. Declare rescan-gated ranges, flags, note dialects and channel counts before the first release. Heard equals value plus modulation across internal, host, per-note and CC-learn sources.
@@ -36,7 +36,7 @@ Preserve product/display `Savera`; CLAP ID `com.catamountaudio.savera`; bundle i
 
 ## Development
 
-Only static analysis runs before Phase 1. The npm package pins text tools and is not part of the future Zig build.
+The npm package pins text tools and is not part of the Zig build. Default signing is ad-hoc; release signing reads only `SAVERA_SIGNING_IDENTITY`. Building stays inside the worktree; only `install-plugins` copies to the user's plugin folders.
 
 ```bash
 npm ci
@@ -47,6 +47,15 @@ typos
 shellcheck --version
 actionlint
 gitleaks detect --no-banner
+zig fmt --check build.zig src/
+zig build
+zig build test
+zig build test-safe
+zig build test-release
+zig build smoke
+zig build validate
+zig build audio-unit
+zig build --release=fast install-plugins
 ```
 
 Read the applicable scoped file before editing its directory, including from a root session:

@@ -81,10 +81,23 @@ jobs:
     timeout-minutes: 3
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: mvdan/sh@2c2c6f209eb653c56cda4edd1a5409e92cb80a8a # v3.13.1
+      - uses: cboone/gh-actions/actions/install-pinned-tool@0d53592f40b487f01b26b374e539c517fa9c570f # v3.2.0
         with:
-          version: v3.13.1
-      - uses: ludeeus/action-shellcheck@a95b61f6de2c98d09472f830fb2ad4a6de117213 # v2.0.0
+          tool: shfmt
+          version: "3.13.1"
+          url-template: https://github.com/mvdan/sh/releases/download/v{version}/shfmt_v{version}_linux_amd64
+          checksum: fb096c5d1ac6beabbdbaa2874d025badb03ee07929f0c9ff67563ce8c75398b1
+      - uses: cboone/gh-actions/actions/install-pinned-tool@0d53592f40b487f01b26b374e539c517fa9c570f # v3.2.0
+        with:
+          tool: shellcheck
+          version: "0.11.0"
+          url-template: https://github.com/koalaman/shellcheck/releases/download/v{version}/shellcheck-v{version}.linux.x86_64.tar.xz
+          checksum: 8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198
+          archive-member: shellcheck-v{version}/shellcheck
+      - name: Report shell tool versions
+        run: |
+          shfmt --version
+          shellcheck --version
       - name: Check shell scripts
         run: |
           git ls-files -z | xargs -0 shfmt -f | xargs -r shfmt -d

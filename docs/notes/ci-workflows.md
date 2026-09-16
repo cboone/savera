@@ -13,7 +13,9 @@ What runs on a push or a pull request, what each job actually judges, and the co
 | `gitleaks.yml`   | `gitleaks`   | `gitleaks / Validate inputs`, `gitleaks / gitleaks`       | gitleaks over the full history, with `.gitleaks.toml`, which it discovers in the source directory without `allowlist-config`      |
 | `trufflehog.yml` | `trufflehog` | `trufflehog / Validate inputs`, `trufflehog / trufflehog` | TruffleHog over the full history. **Cannot fail**; see below                                                                      |
 
-`ci.yml` reads Zig 0.16.0 from `build.zig.zon`. Its Linux job runs the three test modes and the smoke harness without describing CMake; its macOS reusable job builds the direct CLAP. Bundle validation remains a macOS local gate until its dedicated CI job lands.
+`ci.yml` reads Zig 0.16.0 from `build.zig.zon`. Its Linux job runs the three test modes and the functional CLAP/MIDI smoke harness without configuring CMake; its macOS reusable job builds the direct CLAP. A macOS test job runs both release test modes and smoke. The bundle job builds both formats, checks the emitted AU type, display metadata, resource usage, ad-hoc signatures and provenance, then validates both CLAP bundles using clap-validator 0.4.1 at `152b9823e992d782c5c1fd33bca0295478b919aa`, built with Rust 1.97.1 by the v3.2.0 composite action.
+
+The pinned setup-zig action reads `minimum_zig_version` from the root manifest when its version input is omitted. CMake reads the CLAP tag from the same manifest, supplies those headers through `CLAP_SDK_ROOT`, and compares the resolved header version at configure time; clap-wrapper's default 1.2.6 headers are not used.
 
 ## Conventions every workflow follows
 

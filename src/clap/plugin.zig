@@ -2,6 +2,7 @@ const std = @import("std");
 const build_info = @import("../build_info.zig");
 const clap = @import("c.zig");
 const state = @import("state.zig");
+const midi = @import("midi.zig");
 const c = clap.c;
 
 /// Permanent: hosts persist this identifier in project files.
@@ -24,7 +25,9 @@ pub const descriptor: c.clap_plugin_descriptor_t = .{
 
 pub const factory: c.clap_plugin_factory_t = .{ .get_plugin_count = getPluginCount, .get_plugin_descriptor = getPluginDescriptor, .create_plugin = createPlugin };
 
+// The integration fixture allows sixteen simultaneous keys, without bank fan-out.
 const voice_capacity = 16;
+/// Throwaway Phase 1 sine fixture; the physical engine replaces these voices.
 const Voice = struct { active: bool = false, channel: i16 = -1, key: i16 = -1, phase: f32 = 0, increment: f32 = 0 };
 const Instance = struct {
     plugin: c.clap_plugin_t,
@@ -122,7 +125,7 @@ fn audioPortCount(plugin: [*c]const c.clap_plugin_t, is_input: bool) callconv(.c
 fn audioPortGet(plugin: [*c]const c.clap_plugin_t, index: u32, is_input: bool, info: [*c]c.clap_audio_port_info_t) callconv(.c) bool {
     _ = plugin;
     if (is_input or index != 0 or info == null) return false;
-    info.* = .{ .id = 0, .name = undefined, .flags = c.CLAP_AUDIO_PORT_IS_MAIN, .channel_count = 2, .port_type = clap.port_type.stereo, .in_place_pair = c.CLAP_INVALID_ID };
+    info.* = .{ .id = 0, .name = [_]u8{0} ** 256, .flags = c.CLAP_AUDIO_PORT_IS_MAIN, .channel_count = 2, .port_type = clap.port_type.stereo, .in_place_pair = c.CLAP_INVALID_ID };
     @memcpy(info.*.name[0..6], "Output");
     return true;
 }
@@ -134,7 +137,7 @@ fn notePortCount(plugin: [*c]const c.clap_plugin_t, is_input: bool) callconv(.c)
 fn notePortGet(plugin: [*c]const c.clap_plugin_t, index: u32, is_input: bool, info: [*c]c.clap_note_port_info_t) callconv(.c) bool {
     _ = plugin;
     if (!is_input or index != 0 or info == null) return false;
-    info.* = .{ .id = 0, .supported_dialects = clap.note_dialect.clap | clap.note_dialect.midi | clap.note_dialect.midi_mpe, .preferred_dialect = clap.note_dialect.clap, .name = undefined };
+    info.* = .{ .id = 0, .supported_dialects = clap.note_dialect.clap | clap.note_dialect.midi | clap.note_dialect.midi_mpe, .preferred_dialect = clap.note_dialect.clap, .name = [_]u8{0} ** 256 };
     @memcpy(info.*.name[0..5], "Notes");
     return true;
 }
@@ -158,7 +161,7 @@ fn zero(plugin: [*c]const c.clap_plugin_t) callconv(.c) u32 {
 
 fn process(plugin: [*c]const c.clap_plugin_t, process_ctx: [*c]const c.clap_process_t) callconv(.c) c.clap_process_status {
     const self = Instance.from(plugin);
-    if (process_ctx == null or !self.active or process_ctx.*.frames_count > self.max_frames) return c.CLAP_PROCESS_ERROR;
+    if (process_ctx == null or !self.active or !self.processing or process_ctx.*.frames_count > self.max_frames) return c.CLAP_PROCESS_ERROR;
     const ctx = process_ctx.*;
     if (ctx.audio_outputs == null or ctx.audio_outputs_count == 0) return c.CLAP_PROCESS_CONTINUE;
     const output = &ctx.audio_outputs[0];
@@ -187,11 +190,26 @@ fn handleEvents(self: *Instance, ctx: *const c.clap_process_t, frame: u32) void 
         const header = events.*.get.?(events, i) orelse continue;
         if (header.*.time != frame or header.*.space_id != c.CLAP_CORE_EVENT_SPACE_ID) continue;
         if (header.*.type == c.CLAP_EVENT_NOTE_ON) {
+            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
             const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
             noteOn(self, note.channel, note.key);
         } else if (header.*.type == c.CLAP_EVENT_NOTE_OFF) {
+            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
             const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
             noteOff(self, note.channel, note.key);
+        } else if (header.*.type == c.CLAP_EVENT_NOTE_CHOKE) {
+            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
+            const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
+            noteOff(self, note.channel, note.key);
+        } else if (header.*.type == c.CLAP_EVENT_MIDI) {
+            if (header.*.size < @sizeOf(c.clap_event_midi_t)) continue;
+            const event: *const c.clap_event_midi_t = @ptrCast(@alignCast(header));
+            if (event.port_index != 0) continue;
+            if (midi.parse(event.data)) |decoded| switch (decoded) {
+                .note_on => |note| noteOn(self, note.channel, note.key),
+                .note_off => |note| noteOff(self, note.channel, note.key),
+                else => {},
+            };
         }
     }
 }
@@ -205,7 +223,7 @@ fn noteOn(self: *Instance, channel: i16, key: i16) void {
 }
 fn noteOff(self: *Instance, channel: i16, key: i16) void {
     for (&self.voices) |*voice| {
-        if (voice.active and voice.channel == channel and voice.key == key) voice.active = false;
+        if (voice.active and (channel == -1 or voice.channel == channel) and (key == -1 or voice.key == key)) voice.active = false;
     }
 }
 
