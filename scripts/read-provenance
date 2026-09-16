@@ -7,6 +7,7 @@ readonly E_DATAERR=65
 readonly E_NOINPUT=66
 readonly MARKER_PREFIX="savera-build: "
 readonly MARKER_PATTERN="${MARKER_PREFIX}[^[:cntrl:]]*"
+readonly VALID_MARKER_PATTERN='^savera-build: branch=[^[:space:]]+ commit=([0-9a-f]{7,40}|unknown) dirty=(true|false) version=[0-9]+\.[0-9]+\.[0-9]+([+-][[:alnum:].-]+)?$'
 
 function usage() { echo "usage: read-provenance [--check] [--short] <path>..." >&2; }
 function binary_in() {
@@ -25,8 +26,15 @@ function binary_in() {
 	return 1
 }
 function marker_in() {
-	local binary="${1}" match best=""
-	while IFS= read -r match; do [[ ${#match} -gt ${#best} ]] && best="${match}"; done < <(LC_ALL=C /usr/bin/grep -a -o -E "${MARKER_PATTERN}" "${binary}" || true)
+	local binary="${1}" match best="" malformed=""
+	while IFS= read -r match; do
+		if [[ "${match}" =~ ${VALID_MARKER_PATTERN} ]]; then
+			[[ ${#match} -le ${#best} ]] || best="${match}"
+		else
+			malformed="${match}"
+		fi
+	done < <(LC_ALL=C /usr/bin/grep -a -o -E "${MARKER_PATTERN}" "${binary}" || true)
+	[[ -n "${best}" ]] || best="${malformed}"
 	[[ "${best}" == "${MARKER_PREFIX}" ]] && best=""
 	echo "${best}"
 }
@@ -55,7 +63,7 @@ function main() {
 			[[ "${short}" == true ]] && echo "(no provenance)" || echo "${path}: (no provenance)"
 			continue
 		fi
-		if [[ ! "${marker}" =~ ^savera-build:\ branch=[^[:space:]]+\ commit=[^[:space:]]+\ dirty=(true|false)\ version=[^[:space:]]+$ ]]; then
+		if [[ ! "${marker}" =~ ${VALID_MARKER_PATTERN} ]]; then
 			echo "read-provenance: malformed marker in ${path}" >&2
 			return "${E_DATAERR}"
 		fi

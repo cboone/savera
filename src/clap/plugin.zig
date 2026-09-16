@@ -73,7 +73,7 @@ fn destroy(plugin: [*c]const c.clap_plugin_t) callconv(.c) void {
 }
 fn activate(plugin: [*c]const c.clap_plugin_t, sample_rate: f64, min_frames: u32, max_frames: u32) callconv(.c) bool {
     const self = Instance.from(plugin);
-    if (!std.math.isFinite(sample_rate) or sample_rate <= 0 or max_frames == 0 or max_frames < min_frames) return false;
+    if (!std.math.isFinite(sample_rate) or sample_rate <= 0 or sample_rate > std.math.floatMax(f32) or max_frames == 0 or max_frames < min_frames) return false;
     self.sample_rate = @floatCast(sample_rate);
     self.max_frames = max_frames;
     self.active = true;

@@ -36,6 +36,7 @@ pub fn build(b: *std.Build) void {
     addTest(b, target, .ReleaseFast, provenance, "test-release", "Run unit tests in ReleaseFast");
     const smoke = b.addExecutable(.{ .name = "savera-smoke", .root_module = moduleWithRoot(b, target, optimize, provenance, "src/smoke.zig", false) });
     const run_smoke = b.addRunArtifact(smoke);
+    if (b.args) |args| run_smoke.addArgs(args);
     b.step("smoke", "Run the CLAP host smoke harness").dependOn(&run_smoke.step);
 
     if (target.result.os.tag != .macos) return;
