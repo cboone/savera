@@ -33,7 +33,7 @@ comptime {
     assertAbi(c.clap_audio_buffer_t, 32, .{ .data32 = 0, .data64 = 8, .channel_count = 16, .latency = 20, .constant_mask = 24 });
     assertAbi(c.clap_event_header_t, 16, .{ .size = 0, .time = 4, .space_id = 8, .type = 10, .flags = 12 });
     assertAbi(c.clap_event_note_t, 40, .{ .header = 0, .note_id = 16, .port_index = 20, .channel = 22, .key = 24, .velocity = 32 });
-    assertAbi(c.clap_event_midi_t, 24, .{ .header = 0, .port_index = 16, .data = 18 });
+    assertAbi(c.clap_event_midi_t, 24, .{ .header = 0, .port_index = 16, .data = 19 });
     assertAbi(c.clap_input_events_t, 24, .{ .ctx = 0, .size = 8, .get = 16 });
     assertAbi(c.clap_output_events_t, 16, .{ .ctx = 0, .try_push = 8 });
     assertAbi(c.clap_audio_port_info_t, 288, .{ .id = 0, .name = 4, .flags = 260, .channel_count = 264, .port_type = 272, .in_place_pair = 280 });
