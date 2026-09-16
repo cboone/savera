@@ -1,6 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig").c;
 
+/// Permanent state framing identifier; hosts retain these bytes in projects.
 pub const magic = "SVRA";
 pub const version: u32 = 1;
 pub const header_size = magic.len + @sizeOf(u32);
@@ -33,7 +34,7 @@ pub fn load(stream: *const c.clap_istream_t) LoadError!void {
         done += @intCast(n);
     }
     if (!std.mem.eql(u8, header[0..magic.len], magic)) return error.BadMagic;
-    if (std.mem.readInt(u32, header[magic.len..][0..4], .little) > version) return error.UnsupportedVersion;
+    if (std.mem.readInt(u32, header[magic.len..][0..4], .little) != version) return error.UnsupportedVersion;
 }
 
 const TestStream = struct {
@@ -76,6 +77,9 @@ test "state round trips partial streams and refuses invalid headers" {
     data.position = 0;
     data.bytes[0] = 'S';
     data.bytes[4] = 2;
+    try std.testing.expectError(error.UnsupportedVersion, load(&input));
+    data.position = 0;
+    data.bytes[4] = 0;
     try std.testing.expectError(error.UnsupportedVersion, load(&input));
 }
 

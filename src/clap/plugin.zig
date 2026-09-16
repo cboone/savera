@@ -7,6 +7,10 @@ const c = clap.c;
 
 /// Permanent: hosts persist this identifier in project files.
 pub const id = "com.catamountaudio.savera";
+/// Permanent input port identifier; hosts retain port routing in projects.
+pub const note_input_id: c.clap_id = 0;
+/// Permanent stereo output identifier; hosts retain port routing in projects.
+pub const audio_output_id: c.clap_id = 0;
 
 const features = [_:null]?[*:0]const u8{ clap.feature.instrument, clap.feature.synthesizer };
 
@@ -125,7 +129,7 @@ fn audioPortCount(plugin: [*c]const c.clap_plugin_t, is_input: bool) callconv(.c
 fn audioPortGet(plugin: [*c]const c.clap_plugin_t, index: u32, is_input: bool, info: [*c]c.clap_audio_port_info_t) callconv(.c) bool {
     _ = plugin;
     if (is_input or index != 0 or info == null) return false;
-    info.* = .{ .id = 0, .name = [_]u8{0} ** 256, .flags = c.CLAP_AUDIO_PORT_IS_MAIN, .channel_count = 2, .port_type = clap.port_type.stereo, .in_place_pair = c.CLAP_INVALID_ID };
+    info.* = .{ .id = audio_output_id, .name = [_]u8{0} ** 256, .flags = c.CLAP_AUDIO_PORT_IS_MAIN, .channel_count = 2, .port_type = clap.port_type.stereo, .in_place_pair = c.CLAP_INVALID_ID };
     @memcpy(info.*.name[0..6], "Output");
     return true;
 }
@@ -137,7 +141,7 @@ fn notePortCount(plugin: [*c]const c.clap_plugin_t, is_input: bool) callconv(.c)
 fn notePortGet(plugin: [*c]const c.clap_plugin_t, index: u32, is_input: bool, info: [*c]c.clap_note_port_info_t) callconv(.c) bool {
     _ = plugin;
     if (!is_input or index != 0 or info == null) return false;
-    info.* = .{ .id = 0, .supported_dialects = clap.note_dialect.clap | clap.note_dialect.midi | clap.note_dialect.midi_mpe, .preferred_dialect = clap.note_dialect.clap, .name = [_]u8{0} ** 256 };
+    info.* = .{ .id = note_input_id, .supported_dialects = clap.note_dialect.clap | clap.note_dialect.midi | clap.note_dialect.midi_mpe, .preferred_dialect = clap.note_dialect.clap, .name = [_]u8{0} ** 256 };
     @memcpy(info.*.name[0..5], "Notes");
     return true;
 }

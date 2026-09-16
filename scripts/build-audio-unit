@@ -6,13 +6,14 @@ function main() {
 		echo "usage: build-audio-unit [--reconfigure]" >&2
 		return 64
 	}
-	case "${1:-}" in "") ;; --reconfigure) cmake -B build cmake ;; *)
+	case "${1:-}" in "" | --reconfigure) ;; *)
 		echo "usage: build-audio-unit [--reconfigure]" >&2
 		return 64
 		;;
 	esac
 	# Reconfigure to refresh environment-supplied signing options and header checks.
-	cmake -B build cmake
-	cmake --build build --target savera_all
+	cmake -B build cmake || return 65
+	cmake --build build --target savera_all || return 65
+	[[ -d build/assets/Savera.clap && -d build/assets/Savera.component ]] || return 66
 }
 main "$@"

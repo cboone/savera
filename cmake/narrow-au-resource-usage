@@ -15,7 +15,7 @@ function main() {
 	[[ -f "${plist}" ]] || return 66
 	[[ "$(plutil -extract AudioComponents.0.sandboxSafe raw -o - -- "${plist}")" == "true" ]] || return 65
 	if [[ "${check}" == true ]]; then
-		! plutil -extract AudioComponents.0.resourceUsage raw -o - -- "${plist}" >/dev/null 2>&1 && [[ "$(plutil -extract AudioComponents.0.sandboxSafe raw -o - -- "${plist}")" == "true" ]]
+		! plutil -extract AudioComponents.0.resourceUsage raw -o - -- "${plist}" >/dev/null 2>&1 || return 65
 		return
 	fi
 	if plutil -extract AudioComponents.0.resourceUsage raw -o - -- "${plist}" >/dev/null 2>&1; then

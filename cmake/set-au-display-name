@@ -16,7 +16,7 @@ function main() {
 	plist="${1}"
 	[[ -f "${plist}" ]] || return 66
 	if [[ "${check}" == true ]]; then
-		[[ "$(plutil -extract AudioComponents.0.name raw -o - -- "${plist}")" == "${NAME}" && "$(plutil -extract AudioComponents.0.description raw -o - -- "${plist}")" == "${DESCRIPTION}" ]]
+		[[ "$(plutil -extract AudioComponents.0.name raw -o - -- "${plist}")" == "${NAME}" && "$(plutil -extract AudioComponents.0.description raw -o - -- "${plist}")" == "${DESCRIPTION}" ]] || return 65
 		return
 	fi
 	plutil -replace AudioComponents.0.name -string "${NAME}" -- "${plist}"

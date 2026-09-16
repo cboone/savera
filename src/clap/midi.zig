@@ -1,9 +1,10 @@
+/// Velocities, controllers and pressure use 0..1; bend uses -1..1. RPN retains its parameter-dependent 14-bit data for the parameter decoder.
 pub const Event = union(enum) {
-    note_on: struct { channel: u4, key: u7, velocity: u7 },
-    note_off: struct { channel: u4, key: u7, velocity: u7 },
-    controller: struct { channel: u4, controller: u7, value: u7 },
-    channel_pressure: struct { channel: u4, pressure: u7 },
-    pitch_bend: struct { channel: u4, value: u14 },
+    note_on: struct { channel: u4, key: u7, velocity: f32 },
+    note_off: struct { channel: u4, key: u7, velocity: f32 },
+    controller: struct { channel: u4, controller: u7, value: f32 },
+    channel_pressure: struct { channel: u4, pressure: f32 },
+    pitch_bend: struct { channel: u4, value: f32 },
     rpn: struct { channel: u4, parameter: u14, value: u14 },
 };
 
@@ -14,13 +15,17 @@ pub fn parse(bytes: [3]u8) ?Event {
     const data1: u7 = @truncate(bytes[1]);
     const data2: u7 = @truncate(bytes[2]);
     return switch (status & 0xf0) {
-        0x80 => .{ .note_off = .{ .channel = channel, .key = data1, .velocity = data2 } },
-        0x90 => if (data2 == 0) .{ .note_off = .{ .channel = channel, .key = data1, .velocity = 0 } } else .{ .note_on = .{ .channel = channel, .key = data1, .velocity = data2 } },
-        0xb0 => .{ .controller = .{ .channel = channel, .controller = data1, .value = data2 } },
-        0xd0 => .{ .channel_pressure = .{ .channel = channel, .pressure = data1 } },
-        0xe0 => .{ .pitch_bend = .{ .channel = channel, .value = (@as(u14, data2) << 7) | data1 } },
+        0x80 => .{ .note_off = .{ .channel = channel, .key = data1, .velocity = unit(data2) } },
+        0x90 => if (data2 == 0) .{ .note_off = .{ .channel = channel, .key = data1, .velocity = 0 } } else .{ .note_on = .{ .channel = channel, .key = data1, .velocity = unit(data2) } },
+        0xb0 => .{ .controller = .{ .channel = channel, .controller = data1, .value = unit(data2) } },
+        0xd0 => .{ .channel_pressure = .{ .channel = channel, .pressure = unit(data1) } },
+        0xe0 => .{ .pitch_bend = .{ .channel = channel, .value = (@as(f32, @floatFromInt((@as(u14, data2) << 7) | data1)) - 8192) / 8192 } },
         else => null,
     };
+}
+
+fn unit(value: u7) f32 {
+    return @as(f32, @floatFromInt(value)) / 127;
 }
 
 /// MIDI RPN selection and data entry are independent on each of sixteen channels.
@@ -32,15 +37,16 @@ pub const Parser = struct {
         switch (event) {
             .controller => |cc| {
                 const channel = &self.channels[cc.channel];
+                const data: u7 = @intCast(bytes[2]);
                 switch (cc.controller) {
-                    101 => channel.msb = cc.value,
-                    100 => channel.lsb = cc.value,
+                    101 => channel.msb = data,
+                    100 => channel.lsb = data,
                     99, 98 => {
                         channel.msb = 127;
                         channel.lsb = 127;
                     },
                     6, 38 => {
-                        if (cc.controller == 6) channel.data_msb = cc.value else channel.data_lsb = cc.value;
+                        if (cc.controller == 6) channel.data_msb = data else channel.data_lsb = data;
                         if (channel.msb != 127 or channel.lsb != 127) return .{ .rpn = .{ .channel = cc.channel, .parameter = (@as(u14, channel.msb) << 7) | channel.lsb, .value = (@as(u14, channel.data_msb) << 7) | channel.data_lsb } };
                     },
                     else => {},
@@ -51,6 +57,14 @@ pub const Parser = struct {
         return event;
     }
 };
+
+test "controller, pressure and pitch bend use normalized engine units" {
+    const std = @import("std");
+    try std.testing.expectEqual(@as(f32, 1), parse(.{ 0xb0, 11, 127 }).?.controller.value);
+    try std.testing.expectEqual(@as(f32, 0), parse(.{ 0xd0, 0, 0 }).?.channel_pressure.pressure);
+    try std.testing.expectEqual(@as(f32, 0), parse(.{ 0xe0, 0, 64 }).?.pitch_bend.value);
+    try std.testing.expectEqual(@as(f32, -1), parse(.{ 0xe0, 0, 0 }).?.pitch_bend.value);
+}
 
 test "RPN data entry, null selection, and channel isolation" {
     const std = @import("std");
