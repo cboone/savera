@@ -87,7 +87,7 @@ Sourcing one config from the base branch would not close that, because the same 
 
 The clean Phase 1 build and bundle gates passed at `c8ce8fd` in [run 35120466672](https://github.com/cboone/savera/actions/runs/35120466672), at `434a464` in [run 35120878122](https://github.com/cboone/savera/actions/runs/35120878122), and after the AU plant's direct revert in [run 35121402578](https://github.com/cboone/savera/actions/runs/35121402578). The first run measured Linux at 124 seconds, macOS release tests/smoke at 80 seconds, and bundles at 141 seconds. These measurements retain the current ceilings; the bundle job's fifteen-minute ceiling is provisional and includes validator setup.
 
-The AU-type plant [run 35121186925](https://github.com/cboone/savera/actions/runs/35121186925) built successfully, extracted `aufx`, and failed the named instrument-type assertion with exit 1. The extensionless shell plant [run 35121659836](https://github.com/cboone/savera/actions/runs/35121659836) passed shfmt and failed ShellCheck SC2086 with exit 123 from `xargs`. Both plants have direct signed reverts. The complete plant table and Logic checklist remain in the active phase plan.
+The AU-type plant [run 35121186925](https://github.com/cboone/savera/actions/runs/35121186925) built successfully, extracted `aufx`, and failed the named instrument-type assertion with exit 1. The extensionless shell plant [run 35121659836](https://github.com/cboone/savera/actions/runs/35121659836) passed shfmt and failed ShellCheck SC2086 with exit 123 from `xargs`. Both plants have direct signed reverts. The complete plant table and passed Logic checklist remain in the [completed Phase 1 plan](../plans/done/2026-09-15-savera-phase-1-shell.md).
 
 ## Moving a pin
 

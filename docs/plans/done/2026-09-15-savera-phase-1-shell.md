@@ -126,9 +126,9 @@ Ad-hoc bundles from `1de6a7f` were installed on 2026-09-16. Both source/installe
 
 All three built bundles and both installed bundles passed ad-hoc signature and provenance checks, reporting `branch=feature/phase-1 commit=1de6a7f dirty=false version=0.0.0`. The four plants and direct reverts are recorded above. `AGENTS.md` measured 6,028 bytes; the global instructions measured 8,154 bytes, and the largest complete global/root/nested chain measured 15,609 bytes, within 32 KiB. All three `CLAUDE.md` aliases remained symlinks to their paired files, and the preserved brainstorm hash remained unchanged.
 
-Logic discovery is confirmed on 2026-09-16: the user found Savera in the instrument menu of Logic Pro 12.3.1 on macOS 26.6.2 after initially searching effects. Opening it shows a spinning progress indicator with no further visible result. [Issue #5](https://github.com/cboone/savera/issues/5) tracks the loading/window observation and unverified playback. The installed AU still passes strict signature verification, exports its factory entry point, and declares the expected instrument metadata. The local Audio Component capability cache contains its `aumu` / `Svra` / `Ctmn` record with a stereo output and MIDI support. A process sample confirms Savera's binary is loaded in an AU hosting service, but shows no sampled stack inside Savera; it does not establish successful initialization or a cause for the indicator. MIDI sound despite the indicator and the indicator's location remain pending; no wrapper defect has been established. System registration logs could not be read because macOS denied access to the local log store.
+The Logic gate passed on 2026-09-16 with installed build `1de6a7f`, Logic Pro 12.3.1 and macOS 26.6.2. The user found Savera in the software-instrument menu after initially searching effects, inserted it, and played it with Musical Typing. The user confirmed held-key sound on both stereo channels, immediate silence on release, and sound on a repeated key. A spinning indicator overlaps Logic's plug-in chrome at the top control bar while playback works normally. [Issue #5](https://github.com/cboone/savera/issues/5) retains that window observation as a separate follow-up; it does not block the instrument/playback gate, and no wrapper defect has been established. Running-host provenance was unavailable, so the matching installed hashes and markers plus confirmed Logic restart are the weaker build confirmation. System registration logs could not be read because macOS denied access to the local log store.
 
-The phase plan remains in `todo/`, Phase 1 remains active, and [PR #4](https://github.com/cboone/savera/pull/4) remains draft until manual steps 0 through 2 pass. Documentation-only commits record these readings; the installed build under test remains `1de6a7f`.
+All Phase 1 gates are met. [PR #4](https://github.com/cboone/savera/pull/4) includes the final outcomes and this completed per-phase plan under `done/`. Documentation-only commits record these readings; the installed build under test remains `1de6a7f`.
 
 ## Manual verification
 
@@ -152,7 +152,7 @@ The phase plan remains in `todo/`, Phase 1 remains active, and [PR #4](https://g
 - **Expected:** Savera appears in the software-instrument menu and inserts into the instrument slot without a load error.
 - **Null versus broken:** An absent entry or an entry available only as an effect fails this gate, even if the generated plist says `aumu`. Do not infer success from `auval`, whose invisibility is expected for this wrapper.
 - **Why by hand:** The bundle gate reads metadata; Logic's registration and instrument-slot loading are separate observations.
-- **Result:** partial. 2026-09-16, Logic Pro 12.3.1 on macOS 26.6.2, installed build `1de6a7f`: the user confirms finding Savera in the instrument menu, correcting the initial effects-menu search. Opening it shows a spinning progress indicator and no further visible result. Discovery passes; completed insertion and playback remain unverified. See [issue #5](https://github.com/cboone/savera/issues/5).
+- **Result:** passed. 2026-09-16, Logic Pro 12.3.1 on macOS 26.6.2, installed build `1de6a7f`: the user confirms finding and inserting Savera as a software instrument and playing it with Musical Typing. A spinning indicator overlaps the top control bar of Logic's plug-in chrome while playback works; [issue #5](https://github.com/cboone/savera/issues/5) tracks that separate window observation.
 
 ### 2. Play and release a MIDI key
 
@@ -161,7 +161,7 @@ The phase plan remains in `todo/`, Phase 1 remains active, and [PR #4](https://g
 - **Expected:** A sine sounds while each key is held, with signal on both stereo channels. Each release stops the note immediately; the repeated key also produces sound.
 - **Null versus broken:** Silence after release passes only when sound and stereo meter activity were observed immediately before release. An inserted but silent instrument, one inactive channel, or a continuing released note fails.
 - **Why by hand:** The standalone smoke harness does not exercise Logic's MIDI routing, clap-wrapper's Audio Unit bridge, or Logic's audio output.
-- **Result:** pending. Record the held-note sound, both-channel meter activity, release silence and repeated-note observation against the same build.
+- **Result:** passed. 2026-09-16, installed build `1de6a7f`, Logic Pro 12.3.1 on macOS 26.6.2: the user confirms held-key sound with activity on both stereo channels, immediate silence on release, and sound on a repeated key using Musical Typing.
 
 ## Out of scope
 

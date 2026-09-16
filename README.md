@@ -17,7 +17,7 @@ Eleven phases. [The build plan](docs/plans/2026-09-13-savera-build-plan.md) hold
 | Phase | Scope                                                                                     | Status   |
 | ----- | ----------------------------------------------------------------------------------------- | -------- |
 | 0     | Repository foundation: agent config, CI, lint configuration, ADRs, notes                  | Complete |
-| 1     | The shell in both formats, with a placeholder sine voice: loads in Logic as an instrument | Active   |
+| 1     | The shell in both formats, with a placeholder sine voice: loads in Logic as an instrument | Complete |
 | 2     | The single reed: the Python harness, the Zig model, the oracle                            | Planned  |
 | 3     | Parameters, state, the modulation flags and CC learn                                      | Planned  |
 | 4     | The engine: voices, block splitting, the resampler, latency and tail                      | Planned  |
