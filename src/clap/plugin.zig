@@ -8,7 +8,7 @@ const c = clap.c;
 /// Permanent: hosts persist this identifier in project files.
 pub const id = "com.catamountaudio.savera";
 
-const features = [_:null]?[*:0]const u8{ clap.feature.instrument, clap.feature.synthesizer };
+const features = [_:null]?[*:0]const u8{ clap.feature.synthesizer, clap.feature.synthesizer };
 
 pub const descriptor: c.clap_plugin_descriptor_t = .{
     .clap_version = clap.version,
