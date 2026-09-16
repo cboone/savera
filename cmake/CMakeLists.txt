@@ -59,7 +59,7 @@ make_clapfirst_plugins(
     AUV2_MANUFACTURER_NAME "Catamount"
     AUV2_MANUFACTURER_CODE "Ctmn"
     AUV2_SUBTYPE_CODE "Svra"
-    AUV2_INSTRUMENT_TYPE "aumu"
+    AUV2_INSTRUMENT_TYPE "aufx"
 )
 
 if(APPLE AND TARGET savera_auv2)
