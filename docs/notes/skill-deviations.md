@@ -12,6 +12,12 @@ The issues are in [`cboone/agent-harness-plugins`](https://github.com/cboone/age
 
 ## Catalog issues
 
+Phase 1 applies the instrument-specific Zig scaffold by hand because the installed Zig CLI scaffold does not define a CLAP/AUv2 instrument. `build.zig` shares the direct CLAP and object module factory and preprocesses before translation (#344). `src/clap/c.zig` asserts the expected 64-bit size and field offsets of every Phase 1 ABI structure, including streams, MIDI events and port metadata. The fixed-capacity sine has no allocator, lock or syscall on its process path (#343).
+
+Signing reads only `SAVERA_SIGNING_IDENTITY`, defaults to ad-hoc, and adds timestamp/hardened-runtime options together for a real identity (#340). CMake signs after wrapper generation and plist rewrites. Re-signing deliberately removes the prior signature before signing the rebuilt bundle, without a force flag. The signature checker captures the complete `codesign` output before inspecting it, avoiding `grep -q`'s SIGPIPE under `pipefail`.
+
+Build options and the descriptor version carry provenance, the main-thread init callback logs the marker, and the reader selects the longest syntactically valid marker (#341). An embedded-script test pins the prefix. Temporary reader fixtures confirmed longest-valid selection and exit 65 for a malformed marker. CI uses the released validator action (#342), reads the emitted AU type rather than the unreachable wrapper feature warning, and pins and reports both shell tools before tracked-tree shebang discovery (#346). The four plants and direct signed reverts are retained in the phase history.
+
 ### #339 `scaffold-zig-cli` (open)
 
 **Phase 0.** `.claude/settings.json` seeded with `Bash(zig build *)` and `Bash(zig fmt *)`, the two permissions the issue names. The Zig ignore entries beyond `scaffold-new-repo`'s `zig-cli` template, of which `zig-pkg/` is the one the template lacks. The `.editorconfig` sections for `*.{zig,zon}`, C sources and `CMakeLists.txt`, adapted from fosforo.

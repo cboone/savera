@@ -8,7 +8,7 @@ Path-scoped review instructions live alongside this file:
 
 - [`docs.instructions.md`](docs.instructions.md), for `docs/**/*.md`: how plans, ADRs and notes record decisions, why point-in-time statements are deliberate, why done plans are never corrected, and why the preserved brainstorm in `docs/design/` is not maintained prose.
 - [`actions.instructions.md`](actions.instructions.md), for `.github/workflows/*.yml` and `.github/dependabot.yml`: the pinning conventions, why no text or secret-scanning workflow carries `paths-ignore`, and why the typos job pins a checksum.
-- [`zig.instructions.md`](zig.instructions.md), for `**/*.zig` and `**/*.zig.zon`: conventions the ADRs already settled. No file matches that glob before Phase 1, deliberately; the file is there ahead of the code.
+- [`zig.instructions.md`](zig.instructions.md), for `**/*.zig` and `**/*.zig.zon`: conventions the ADRs already settled, applied to the Phase 1 instrument shell.
 
 ## PR Review
 

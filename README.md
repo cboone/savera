@@ -42,6 +42,8 @@ Planned, for the first release:
 
 Use `zig build` for the direct CLAP, `zig build test` for unit tests, `zig build smoke` for the host-boundary fixture, and `zig build audio-unit` for the CMake projection. The installer remains a Phase 7 release artifact.
 
+The shell needs Zig 0.16.0, CMake and clap-validator 0.4.1 on an Apple Silicon Mac. `zig build test-safe` and `zig build test-release` run both release test modes; `zig build validate` validates the direct CLAP. `zig build --release=fast install-plugins` builds and copies both formats into the user plugin folders and reports installed hashes and provenance. The default signature is ad-hoc; release signing reads `SAVERA_SIGNING_IDENTITY` from the environment.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md), and [AGENTS.md](AGENTS.md) for what is settled and what is permanent.

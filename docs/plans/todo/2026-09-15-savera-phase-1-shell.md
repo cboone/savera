@@ -88,12 +88,12 @@ The Phase 1 implementation adapts the established build, CMake, provenance, sign
 
 ## Plant table
 
-| Planted defect                                          | Instrument expected to catch it  | What actually happened                          | Test that covers it now                                                            |
-| ------------------------------------------------------- | -------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Change an asserted CLAP ABI field offset                | The ABI layout unit test         | Record the failing assertion and exit status    | `@offsetOf` comptime assertion for the affected CLAP structure                     |
-| Change `features[0]` from `instrument`                  | The descriptor-feature unit test | Record the failing assertion and exit status    | Unit test comparing the descriptor’s first feature with the restated CLAP constant |
-| Change `AUV2_INSTRUMENT_TYPE` from `aumu`               | The CI plist-type extraction     | Record the red CI step and extracted value      | Bundle-gate `plutil` assertion over the emitted component plist                    |
-| Add an SC2086 defect to an extensionless tracked script | The `text-lint.yml` shell job    | Record the ShellCheck diagnostic and job result | Shebang discovery followed by ShellCheck                                           |
+| Planted defect                                          | Instrument expected to catch it  | What actually happened                                                                                                                                                                                 | Test that covers it now                                      |
+| ------------------------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Change an asserted CLAP ABI field offset                | The ABI layout unit test         | `0867f63`: expected MIDI `data` offset changed from 18 to 19; named `data ABI offset mismatch` assertion rejected compilation, exit 1; direct revert `21ef619`                                         | `assertAbi` size and offset assertions in `src/clap/c.zig`   |
+| Change `features[0]` from `instrument`                  | The descriptor-feature unit test | `400f66a`: the named descriptor test reported `instrument` versus `synthesizer`, 8/9 tests passed, exit 1; direct revert `3a2df7a`                                                                     | `the permanent descriptor begins with instrument`            |
+| Change `AUV2_INSTRUMENT_TYPE` from `aumu`               | The CI plist-type extraction     | `eb3b8a7`: wrapper build passed; [CI 35121186925](https://github.com/cboone/savera/actions/runs/35121186925) extracted `aufx` and the named type assertion failed with exit 1; direct revert `d3b6bbe` | Bundle-gate extraction of the emitted component type         |
+| Add an SC2086 defect to an extensionless tracked script | The `text-lint.yml` shell job    | `e8866e1`: [CI 35121659836](https://github.com/cboone/savera/actions/runs/35121659836) reported SC2086 at `cmake/set-au-display-name:17`, exit 123 from `xargs`; shfmt passed; direct revert `75a617a` | Tracked-tree shebang discovery followed by pinned ShellCheck |
 
 Before planting, commit the corresponding control and verify the clean head. Plant one defect at a time from a clean worktree, identify the named assertion or CI step rather than a neighboring failure, record the observed result in this table, and immediately commit a direct revert. No secret-shaped plant is ever committed.
 
@@ -109,6 +109,39 @@ Before planting, commit the corresponding control and verify the clean head. Pla
    - **Expected:** Logic lists Savera as an instrument; plugin initialization logs the installed provenance; a sine is audible on both channels while held and stops on release.
    - **Null versus broken:** An absent instrument or an effect-only listing points to AU type or registration; an inserted plug-in with no audible note points to the wrapper note/audio path or `process()`.
 6. Treat `auval` invisibility as expected clap-wrapper behavior, not a failed gate. If the Logic gate fails after the bundle controls are green, do not mark Phase 1 complete: record the result, file the Savera issue, and report any likely third-party wrapper defect without writing upstream.
+
+## Manual verification
+
+### Exclusive resources
+
+`~/Library/Audio/Plug-Ins/Components/Savera.component`, `~/Library/Audio/Plug-Ins/CLAP/Savera.clap`, and `Logic Pro` are needed for steps 0 through 2. Do not install Savera from another worktree during this session. The automated build, test, validator and planted controls need no host application.
+
+### 0. Confirm the installed build
+
+- **Setup:** The clean automated gate passes for the commit under test. Close any existing Savera instances before installing.
+- **Action:** Run `zig build --release=fast install-plugins`. Compare SHA-256 hashes of each source binary and its installed binary. Run `scripts/read-provenance --check` on both installed bundles. Restart Logic after installation and retain the `savera-build:` initialization message from its host log if available.
+- **Expected:** Source and installed hashes match for both formats. Both markers name `feature/phase-1`, the commit under test, and `dirty=false`. Logic starts after that installation. A host initialization log, when available, agrees with the installed marker.
+- **Null versus broken:** A syntactically valid marker from another commit is not confirmation. Without a host log, restarting Logic after installation and matching installed hashes is the weaker confirmation; record it explicitly.
+- **Why by hand:** Only the running host determines which registered Audio Unit instance it loads.
+- **Result:** pending.
+
+### 1. Insert Savera as a software instrument
+
+- **Setup:** Step 0 passed in this session. Open a new Logic project and add a software-instrument track.
+- **Action:** Find `Catamount: Savera` in the track's instrument menu and insert it.
+- **Expected:** Savera appears in the software-instrument menu and inserts into the instrument slot without a load error.
+- **Null versus broken:** An absent entry or an entry available only as an effect fails this gate, even if the generated plist says `aumu`. Do not infer success from `auval`, whose invisibility is expected for this wrapper.
+- **Why by hand:** The bundle gate reads metadata; Logic's registration and instrument-slot loading are separate observations.
+- **Result:** pending. Record Logic version, macOS version, confirmed commit, and the observed menu/slot behavior.
+
+### 2. Play and release a MIDI key
+
+- **Setup:** Step 1 passed. The Savera track is selected, its output is audible, and its stereo meters are visible. Use a MIDI keyboard or Logic's Musical Typing.
+- **Action:** Hold a key, release it, and repeat with a second key.
+- **Expected:** A sine sounds while each key is held, with signal on both stereo channels. Each release stops the note immediately; the repeated key also produces sound.
+- **Null versus broken:** Silence after release passes only when sound and stereo meter activity were observed immediately before release. An inserted but silent instrument, one inactive channel, or a continuing released note fails.
+- **Why by hand:** The standalone smoke harness does not exercise Logic's MIDI routing, clap-wrapper's Audio Unit bridge, or Logic's audio output.
+- **Result:** pending. Record the held-note sound, both-channel meter activity, release silence and repeated-note observation against the same build.
 
 ## Out of scope
 

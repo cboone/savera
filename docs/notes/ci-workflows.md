@@ -7,7 +7,7 @@ What runs on a push or a pull request, what each job actually judges, and the co
 | Workflow         | Job          | Rollup rows                                               | What it judges                                                                                                                    |
 | ---------------- | ------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `text-lint.yml`  | `text`       | `text / Text lint`                                        | markdownlint with the relative-links rule, then Prettier over every supported file type, which is skipped when markdownlint fails |
-| `text-lint.yml`  | `shell`      | `shell / Shell lint`                                      | shellcheck and shfmt over discovered shell scripts; finds none before Phase 1                                                     |
+| `text-lint.yml`  | `shell`      | `shell`                                                   | pinned ShellCheck and shfmt over tracked scripts discovered by shebang                                                            |
 | `text-lint.yml`  | `actions`    | `actions / actionlint`                                    | actionlint over every workflow, with a pinned shellcheck for `run:` blocks                                                        |
 | `text-lint.yml`  | `typos`      | `typos`                                                   | typos over the tracked tree                                                                                                       |
 | `gitleaks.yml`   | `gitleaks`   | `gitleaks / Validate inputs`, `gitleaks / gitleaks`       | gitleaks over the full history, with `.gitleaks.toml`, which it discovers in the source directory without `allowlist-config`      |
@@ -82,6 +82,12 @@ For the reusable calls the timeout is a `timeout-minutes` input, not a job key, 
 Every check here runs on `pull_request`, and for that event GitHub runs the workflow definitions and reads the configuration from the pull request's own merge commit. So a pull request can change what judges it: it can add a path to `.gitleaks.toml`'s allowlist, a word to `typos.toml`, an entry to `.prettierignore` or `.markdownlint-cli2.jsonc`, or edit or delete a workflow outright, and the checks it leaves standing will pass.
 
 Sourcing one config from the base branch would not close that, because the same pull request could remove the job that reads it. `pull_request_target` would, but it runs with the base repository's permissions against untrusted code, which is the more dangerous trade. The control is review: a change to any file under `.github/workflows/`, or to `.gitleaks.toml`, `typos.toml`, `.prettierignore`, `.markdownlint-cli2.jsonc` or `.prettierrc.json`, is a change to a gate, and it gets read as one. Raised by Copilot's review of PR #1 on 2026-09-14 for `.gitleaks.toml`. If the project ever takes outside contributions, CODEOWNERS on those paths with required review is the mechanical form of the same control.
+
+## Phase 1 measurements
+
+The clean Phase 1 build and bundle gates passed at `c8ce8fd` in [run 35120466672](https://github.com/cboone/savera/actions/runs/35120466672), at `434a464` in [run 35120878122](https://github.com/cboone/savera/actions/runs/35120878122), and after the AU plant's direct revert in [run 35121402578](https://github.com/cboone/savera/actions/runs/35121402578). The first run measured Linux at 124 seconds, macOS release tests/smoke at 80 seconds, and bundles at 141 seconds. These measurements retain the current ceilings; the bundle job's fifteen-minute ceiling is provisional and includes validator setup.
+
+The AU-type plant [run 35121186925](https://github.com/cboone/savera/actions/runs/35121186925) built successfully, extracted `aufx`, and failed the named instrument-type assertion with exit 1. The extensionless shell plant [run 35121659836](https://github.com/cboone/savera/actions/runs/35121659836) passed shfmt and failed ShellCheck SC2086 with exit 123 from `xargs`. Both plants have direct signed reverts. The complete plant table and Logic checklist remain in the active phase plan.
 
 ## Moving a pin
 
