@@ -14,7 +14,6 @@ function main() {
 		return 64
 	}
 	plist="${1}"
-	echo ${plist} >/dev/null
 	[[ -f "${plist}" ]] || return 66
 	if [[ "${check}" == true ]]; then
 		[[ "$(plutil -extract AudioComponents.0.name raw -o - -- "${plist}")" == "${NAME}" && "$(plutil -extract AudioComponents.0.description raw -o - -- "${plist}")" == "${DESCRIPTION}" ]]
