@@ -85,6 +85,7 @@ The Phase 1 implementation adapts the established build, CMake, provenance, sign
 - A CLAP state envelope beginning with `SVRA` and a `u32` format version, with no payload fields yet.
 - Build commands: `zig build`, `zig build test`, `zig build test-safe`, `zig build test-release`, `zig build smoke`, `zig build validate`, `zig build audio-unit`, and `zig build install-plugins`.
 - Script interfaces: `build-audio-unit [--reconfigure]`, `read-provenance [--check] [--short] <path>...`, `assert-adhoc-signature <bundle>...`, and the two plist scripts’ `[--check] <Info.plist>` form.
+- The smoke executable returns 0 for success, 1 for an executed failing check, and 2 for invalid arguments. Shell usage errors return 64, malformed metadata or build/signature validation failures return 65, and missing input artifacts return 66. External tool failures may propagate their own status through the installer.
 
 ## Plant table
 
@@ -110,6 +111,23 @@ Before planting, commit the corresponding control and verify the clean head. Pla
    - **Null versus broken:** An absent instrument or an effect-only listing points to AU type or registration; an inserted plug-in with no audible note points to the wrapper note/audio path or `process()`.
 6. Treat `auval` invisibility as expected clap-wrapper behavior, not a failed gate. If the Logic gate fails after the bundle controls are green, do not mark Phase 1 complete: record the result, file the Savera issue, and report any likely third-party wrapper defect without writing upstream.
 
+## Automated verification results
+
+The clean implementation at `1de6a7f` passed [build and bundle CI 35122242123](https://github.com/cboone/savera/actions/runs/35122242123), [text/shell/workflow CI 35122242236](https://github.com/cboone/savera/actions/runs/35122242236), and [gitleaks CI 35122242128](https://github.com/cboone/savera/actions/runs/35122242128). Linux ran all three unit modes and smoke. macOS ran all three modes, smoke, both CLAP validators and the full AU metadata/signature/provenance gate. The measured final job durations were Linux 113 seconds, macOS release tests/smoke 47 seconds, and bundles 75 seconds. TruffleHog completed but its known non-failing configuration is not coverage.
+
+The local clean gate at the same commit passed ten tests per mode, thirty across Debug, ReleaseSafe and ReleaseFast, plus the functional CLAP/MIDI smoke harness. clap-validator 0.4.1 reported 88 tests across both bundles: 46 passed, none failed or warned, and 42 skipped because Phase 1 has no GUI, parameters or presets. Local text formatting, Markdown links/lint, typos, ShellCheck, shfmt, actionlint and gitleaks passed. Zig was 0.16.0, CMake 4.4.3, ShellCheck 0.11.0, and the checksum-verified shfmt executable was 3.13.1; text tools came from `npm ci` and the committed lockfile.
+
+Ad-hoc bundles from `1de6a7f` were installed on 2026-09-16. Both source/installed binary pairs have matching SHA-256 hashes:
+
+| Format      | Source and installed binary SHA-256                                |
+| ----------- | ------------------------------------------------------------------ |
+| Direct CLAP | `254d9275076322997a892cb16119237c0ee933ededfb698f2b98bef28bad962f` |
+| Audio Unit  | `85eb2456473dd4ff0aee955bed315437a9c9627e764c7fc4aeb2c65d2c945dd8` |
+
+All three built bundles and both installed bundles passed ad-hoc signature and provenance checks, reporting `branch=feature/phase-1 commit=1de6a7f dirty=false version=0.0.0`. The four plants and direct reverts are recorded above. `AGENTS.md` measured 6,028 bytes; the global instructions measured 8,154 bytes, and the largest complete global/root/nested chain measured 15,609 bytes, within 32 KiB. All three `CLAUDE.md` aliases remained symlinks to their paired files, and the preserved brainstorm hash remained unchanged.
+
+Logic playback is pending. The phase plan remains in `todo/`, Phase 1 remains active, and [PR #4](https://github.com/cboone/savera/pull/4) remains draft until manual steps 0 through 2 pass. A subsequent documentation-only commit records these readings; the installed build under test remains `1de6a7f`.
+
 ## Manual verification
 
 ### Exclusive resources
@@ -123,7 +141,7 @@ Before planting, commit the corresponding control and verify the clean head. Pla
 - **Expected:** Source and installed hashes match for both formats. Both markers name `feature/phase-1`, the commit under test, and `dirty=false`. Logic starts after that installation. A host initialization log, when available, agrees with the installed marker.
 - **Null versus broken:** A syntactically valid marker from another commit is not confirmation. Without a host log, restarting Logic after installation and matching installed hashes is the weaker confirmation; record it explicitly.
 - **Why by hand:** Only the running host determines which registered Audio Unit instance it loads.
-- **Result:** pending.
+- **Result:** partial. 2026-09-16, installed build `1de6a7f`: both source/installed binary hashes match the table above, signatures pass, and both markers report the same clean build. Logic restart and running-host confirmation await the playback report.
 
 ### 1. Insert Savera as a software instrument
 
