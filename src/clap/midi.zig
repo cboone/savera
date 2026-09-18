@@ -10,11 +10,14 @@ pub const Event = union(enum) {
 
 pub fn parse(bytes: [3]u8) ?Event {
     const status = bytes[0];
-    if (status < 0x80 or status >= 0xf0 or bytes[1] > 127 or bytes[2] > 127) return null;
+    if (status < 0x80 or status >= 0xf0 or bytes[1] > 127) return null;
+    const kind = status & 0xf0;
+    // Program change and channel pressure carry one data byte, so the third byte is padding the host need not clear.
+    if (kind != 0xc0 and kind != 0xd0 and bytes[2] > 127) return null;
     const channel: u4 = @truncate(status);
     const data1: u7 = @truncate(bytes[1]);
     const data2: u7 = @truncate(bytes[2]);
-    return switch (status & 0xf0) {
+    return switch (kind) {
         0x80 => .{ .note_off = .{ .channel = channel, .key = data1, .velocity = unit(data2) } },
         0x90 => if (data2 == 0) .{ .note_off = .{ .channel = channel, .key = data1, .velocity = 0 } } else .{ .note_on = .{ .channel = channel, .key = data1, .velocity = unit(data2) } },
         0xb0 => .{ .controller = .{ .channel = channel, .controller = data1, .value = unit(data2) } },
@@ -64,6 +67,13 @@ test "controller, pressure and pitch bend use normalized engine units" {
     try std.testing.expectEqual(@as(f32, 0), parse(.{ 0xd0, 0, 0 }).?.channel_pressure.pressure);
     try std.testing.expectEqual(@as(f32, 0), parse(.{ 0xe0, 0, 64 }).?.pitch_bend.value);
     try std.testing.expectEqual(@as(f32, -1), parse(.{ 0xe0, 0, 0 }).?.pitch_bend.value);
+}
+
+test "channel pressure ignores its padding byte, and two-data-byte messages still check both" {
+    const std = @import("std");
+    try std.testing.expectEqual(@as(f32, 1), parse(.{ 0xd3, 127, 0xff }).?.channel_pressure.pressure);
+    try std.testing.expect(parse(.{ 0xb0, 11, 0xff }) == null);
+    try std.testing.expect(parse(.{ 0x90, 69, 0x80 }) == null);
 }
 
 test "RPN data entry, null selection, and channel isolation" {

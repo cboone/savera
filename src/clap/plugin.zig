@@ -32,7 +32,7 @@ pub const factory: c.clap_plugin_factory_t = .{ .get_plugin_count = getPluginCou
 // The integration fixture allows sixteen simultaneous keys, without bank fan-out.
 const voice_capacity = 16;
 /// Throwaway Phase 1 sine fixture; the physical engine replaces these voices.
-const Voice = struct { active: bool = false, channel: i16 = -1, key: i16 = -1, phase: f32 = 0, increment: f32 = 0 };
+const Voice = struct { active: bool = false, note_id: i32 = -1, channel: i16 = -1, key: i16 = -1, phase: f32 = 0, increment: f32 = 0 };
 const Instance = struct {
     plugin: c.clap_plugin_t,
     host: *const c.clap_host_t,
@@ -170,9 +170,17 @@ fn process(plugin: [*c]const c.clap_plugin_t, process_ctx: [*c]const c.clap_proc
     if (ctx.audio_outputs == null or ctx.audio_outputs_count == 0) return c.CLAP_PROCESS_CONTINUE;
     const output = &ctx.audio_outputs[0];
     if (output.data32 == null or output.channel_count < 2) return c.CLAP_PROCESS_ERROR;
+    const events = ctx.in_events;
+    const event_count: u32 = if (events != null) events.*.size.?(events) else 0;
+    var next_event: u32 = 0;
     var frame: u32 = 0;
     while (frame < ctx.frames_count) : (frame += 1) {
-        handleEvents(self, &ctx, frame);
+        // The host delivers input events sorted by time, so one pass over the list applies each event at its own frame.
+        while (next_event < event_count) : (next_event += 1) {
+            const header = events.*.get.?(events, next_event) orelse continue;
+            if (header.*.time > frame) break;
+            handleEvent(self, header);
+        }
         var sample: f32 = 0;
         for (&self.voices) |*voice| if (voice.active) {
             sample += @sin(voice.phase);
@@ -186,51 +194,109 @@ fn process(plugin: [*c]const c.clap_plugin_t, process_ctx: [*c]const c.clap_proc
     return c.CLAP_PROCESS_CONTINUE;
 }
 
-fn handleEvents(self: *Instance, ctx: *const c.clap_process_t, frame: u32) void {
-    const events = ctx.in_events orelse return;
-    const count = events.*.size.?(events);
-    var i: u32 = 0;
-    while (i < count) : (i += 1) {
-        const header = events.*.get.?(events, i) orelse continue;
-        if (header.*.time != frame or header.*.space_id != c.CLAP_CORE_EVENT_SPACE_ID) continue;
-        if (header.*.type == c.CLAP_EVENT_NOTE_ON) {
-            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
-            const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
-            noteOn(self, note.channel, note.key);
-        } else if (header.*.type == c.CLAP_EVENT_NOTE_OFF) {
-            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
-            const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
-            noteOff(self, note.channel, note.key);
-        } else if (header.*.type == c.CLAP_EVENT_NOTE_CHOKE) {
-            if (header.*.size < @sizeOf(c.clap_event_note_t)) continue;
-            const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
-            noteOff(self, note.channel, note.key);
-        } else if (header.*.type == c.CLAP_EVENT_MIDI) {
-            if (header.*.size < @sizeOf(c.clap_event_midi_t)) continue;
-            const event: *const c.clap_event_midi_t = @ptrCast(@alignCast(header));
-            if (event.port_index != 0) continue;
-            if (midi.parse(event.data)) |decoded| switch (decoded) {
-                .note_on => |note| noteOn(self, note.channel, note.key),
-                .note_off => |note| noteOff(self, note.channel, note.key),
-                else => {},
-            };
-        }
+fn handleEvent(self: *Instance, header: [*c]const c.clap_event_header_t) void {
+    if (header.*.space_id != c.CLAP_CORE_EVENT_SPACE_ID) return;
+    if (header.*.type == c.CLAP_EVENT_NOTE_ON or header.*.type == c.CLAP_EVENT_NOTE_OFF or header.*.type == c.CLAP_EVENT_NOTE_CHOKE) {
+        if (header.*.size < @sizeOf(c.clap_event_note_t)) return;
+        const note: *const c.clap_event_note_t = @ptrCast(@alignCast(header));
+        // ADR 0023's (port, channel, key, note_id) address: the only note port has index 0, and -1 addresses every port.
+        if (note.port_index != 0 and note.port_index != -1) return;
+        if (header.*.type == c.CLAP_EVENT_NOTE_ON) noteOn(self, note.note_id, note.channel, note.key) else noteOff(self, note.note_id, note.channel, note.key);
+    } else if (header.*.type == c.CLAP_EVENT_MIDI) {
+        if (header.*.size < @sizeOf(c.clap_event_midi_t)) return;
+        const event: *const c.clap_event_midi_t = @ptrCast(@alignCast(header));
+        if (event.port_index != 0) return;
+        if (midi.parse(event.data)) |decoded| switch (decoded) {
+            .note_on => |note| noteOn(self, -1, note.channel, note.key),
+            .note_off => |note| noteOff(self, -1, note.channel, note.key),
+            else => {},
+        };
     }
 }
-fn noteOn(self: *Instance, channel: i16, key: i16) void {
+fn noteOn(self: *Instance, note_id: i32, channel: i16, key: i16) void {
     if (key < 0 or key > 127) return;
     for (&self.voices) |*voice| if (!voice.active) {
         const semitones: f32 = @floatFromInt(key - 69);
-        voice.* = .{ .active = true, .channel = channel, .key = key, .increment = 2 * std.math.pi * 440 * std.math.pow(f32, 2, semitones / 12) / self.sample_rate };
+        voice.* = .{ .active = true, .note_id = note_id, .channel = channel, .key = key, .increment = 2 * std.math.pi * 440 * std.math.pow(f32, 2, semitones / 12) / self.sample_rate };
         return;
     };
 }
-fn noteOff(self: *Instance, channel: i16, key: i16) void {
+/// A -1 in the event's address is a wildcard, so a note-off without a note id releases every voice on its channel and key.
+fn noteOff(self: *Instance, note_id: i32, channel: i16, key: i16) void {
     for (&self.voices) |*voice| {
-        if (voice.active and (channel == -1 or voice.channel == channel) and (key == -1 or voice.key == key)) voice.active = false;
+        if (voice.active and (note_id == -1 or voice.note_id == note_id) and (channel == -1 or voice.channel == channel) and (key == -1 or voice.key == key)) voice.active = false;
     }
 }
 
 test "the permanent descriptor begins with instrument" {
     try std.testing.expectEqualStrings(clap.feature.instrument, std.mem.span(descriptor.features[0].?));
+}
+
+fn testNote(kind: u16, time: u32, note_id: i32, port_index: i16, key: i16) c.clap_event_note_t {
+    return .{ .header = .{ .size = @sizeOf(c.clap_event_note_t), .time = time, .space_id = c.CLAP_CORE_EVENT_SPACE_ID, .type = kind, .flags = 0 }, .note_id = note_id, .port_index = port_index, .channel = 0, .key = key, .velocity = 1 };
+}
+fn activeVoices(self: *const Instance) usize {
+    var count: usize = 0;
+    for (self.voices) |voice| count += @intFromBool(voice.active);
+    return count;
+}
+
+test "a note-off with a note id releases only that voice, and one without releases the key" {
+    var self = Instance{ .plugin = undefined, .host = undefined, .sample_rate = 48000 };
+    for ([_]i32{ 1, 2, 3 }) |note_id| handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_ON, 0, note_id, 0, 60).header);
+    handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_OFF, 0, 1, 0, 60).header);
+    try std.testing.expectEqual(@as(usize, 2), activeVoices(&self));
+    handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_OFF, 0, -1, -1, 60).header);
+    try std.testing.expectEqual(@as(usize, 0), activeVoices(&self));
+}
+
+test "note events addressed to another note port are ignored" {
+    var self = Instance{ .plugin = undefined, .host = undefined, .sample_rate = 48000 };
+    handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_ON, 0, -1, 1, 60).header);
+    try std.testing.expectEqual(@as(usize, 0), activeVoices(&self));
+    handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_ON, 0, -1, 0, 60).header);
+    handleEvent(&self, &testNote(c.CLAP_EVENT_NOTE_OFF, 0, -1, 1, 60).header);
+    try std.testing.expectEqual(@as(usize, 1), activeVoices(&self));
+}
+
+test "one pass over the sorted event list applies each event at its own frame" {
+    const Script = struct {
+        headers: []const *const c.clap_event_header_t,
+        gets: u32 = 0,
+        fn size(list: [*c]const c.clap_input_events_t) callconv(.c) u32 {
+            const script: *const @This() = @ptrCast(@alignCast(list.*.ctx.?));
+            return @intCast(script.headers.len);
+        }
+        fn get(list: [*c]const c.clap_input_events_t, index: u32) callconv(.c) [*c]const c.clap_event_header_t {
+            const script: *@This() = @ptrCast(@alignCast(list.*.ctx.?));
+            script.gets += 1;
+            return if (index < script.headers.len) script.headers[index] else null;
+        }
+    };
+    var host = std.mem.zeroes(c.clap_host_t);
+    host.clap_version = c.CLAP_VERSION;
+    const instance = createPlugin(&factory, &host, id);
+    try std.testing.expect(instance != null);
+    defer destroy(instance);
+    try std.testing.expect(activate(instance, 48000, 1, 8));
+    try std.testing.expect(startProcessing(instance));
+    const on = testNote(c.CLAP_EVENT_NOTE_ON, 4, -1, 0, 69);
+    const off = testNote(c.CLAP_EVENT_NOTE_OFF, 6, -1, 0, 69);
+    var script = Script{ .headers = &.{ &on.header, &off.header } };
+    const list = c.clap_input_events_t{ .ctx = &script, .size = Script.size, .get = Script.get };
+    var left = [_]f32{1} ** 8;
+    var right = [_]f32{1} ** 8;
+    var channels = [_][*c]f32{ &left, &right };
+    var audio = std.mem.zeroes(c.clap_audio_buffer_t);
+    audio.data32 = &channels;
+    audio.channel_count = 2;
+    var ctx = std.mem.zeroes(c.clap_process_t);
+    ctx.frames_count = 8;
+    ctx.audio_outputs = &audio;
+    ctx.audio_outputs_count = 1;
+    ctx.in_events = &list;
+    try std.testing.expectEqual(c.CLAP_PROCESS_CONTINUE, process(instance, &ctx));
+    // The voice starts at phase zero on frame 4 and stops before frame 6, so frame 5 alone sounds.
+    for (left, 0..) |sample, frame| try std.testing.expectEqual(frame == 5, sample != 0);
+    try std.testing.expect(script.gets <= script.headers.len + ctx.frames_count);
 }
