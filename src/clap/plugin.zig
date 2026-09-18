@@ -172,13 +172,13 @@ fn process(plugin: [*c]const c.clap_plugin_t, process_ctx: [*c]const c.clap_proc
     if (output.data32 == null or output.channel_count < 2) return c.CLAP_PROCESS_ERROR;
     const events = ctx.in_events;
     const event_count: u32 = if (events != null) events.*.size.?(events) else 0;
-    var next_event: u32 = 0;
+    var next_index: u32 = 0;
+    // The host delivers input events sorted by time, so one pass reads each event once and holds it until its frame.
+    var pending = nextEvent(events, event_count, &next_index);
     var frame: u32 = 0;
     while (frame < ctx.frames_count) : (frame += 1) {
-        // The host delivers input events sorted by time, so one pass over the list applies each event at its own frame.
-        while (next_event < event_count) : (next_event += 1) {
-            const header = events.*.get.?(events, next_event) orelse continue;
-            if (header.*.time > frame) break;
+        while (pending) |header| : (pending = nextEvent(events, event_count, &next_index)) {
+            if (header.time > frame) break;
             handleEvent(self, header);
         }
         var sample: f32 = 0;
@@ -194,6 +194,14 @@ fn process(plugin: [*c]const c.clap_plugin_t, process_ctx: [*c]const c.clap_proc
     return c.CLAP_PROCESS_CONTINUE;
 }
 
+fn nextEvent(events: [*c]const c.clap_input_events_t, count: u32, index: *u32) ?*const c.clap_event_header_t {
+    while (index.* < count) {
+        const header = events.*.get.?(events, index.*);
+        index.* += 1;
+        if (header != null) return header;
+    }
+    return null;
+}
 fn handleEvent(self: *Instance, header: [*c]const c.clap_event_header_t) void {
     if (header.*.space_id != c.CLAP_CORE_EVENT_SPACE_ID) return;
     if (header.*.type == c.CLAP_EVENT_NOTE_ON or header.*.type == c.CLAP_EVENT_NOTE_OFF or header.*.type == c.CLAP_EVENT_NOTE_CHOKE) {
@@ -259,7 +267,7 @@ test "note events addressed to another note port are ignored" {
     try std.testing.expectEqual(@as(usize, 1), activeVoices(&self));
 }
 
-test "one pass over the sorted event list applies each event at its own frame" {
+test "one pass over the sorted event list reads each event once and applies it at its own frame" {
     const Script = struct {
         headers: []const *const c.clap_event_header_t,
         gets: u32 = 0,
@@ -298,5 +306,5 @@ test "one pass over the sorted event list applies each event at its own frame" {
     try std.testing.expectEqual(c.CLAP_PROCESS_CONTINUE, process(instance, &ctx));
     // The voice starts at phase zero on frame 4 and stops before frame 6, so frame 5 alone sounds.
     for (left, 0..) |sample, frame| try std.testing.expectEqual(frame == 5, sample != 0);
-    try std.testing.expect(script.gets <= script.headers.len + ctx.frames_count);
+    try std.testing.expectEqual(@as(u32, @intCast(script.headers.len)), script.gets);
 }
