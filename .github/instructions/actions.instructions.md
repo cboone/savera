@@ -4,7 +4,7 @@ applyTo: ".github/workflows/*.yml,.github/dependabot.yml"
 
 # Reviewing this project's workflows
 
-For repo-wide conventions, see [`copilot-instructions.md`](copilot-instructions.md) and `AGENTS.md` at the repository root.
+For repo-wide conventions, see [`copilot-instructions.md`](../copilot-instructions.md) and `AGENTS.md` at the repository root.
 
 Most of what looks like a defect in these files is a deliberate convention, and several of the facts below were measured rather than assumed. The depth is in `docs/notes/ci-workflows.md`.
 
@@ -20,5 +20,5 @@ Most of what looks like a defect in these files is a deliberate convention, and 
 - **The shell job discovers tracked scripts by shebang**, including extensionless scripts under `cmake/`. Its pinned shfmt and ShellCheck checks must use that discovered list.
 - **Timeouts are carried from fosforo and marked unmeasured.** Do not suggest lowering or raising them without a measured run.
 - **`package.json` exists for the text lint tools only.** This is a Zig project, not a Node one. Do not suggest removing the manifests, adding application dependencies, or treating it as JavaScript.
-- **`ci.yml` reads its Zig toolchain from `build.zig.zon`.** The macOS bundle gate validates both CLAP bundles and checks the emitted AU type, plist rewrites, signatures and provenance. Linux checks the non-Darwin test and host-harness path.
+- **`ci.yml` reads its Zig toolchain from `build.zig.zon`, so every `mlugg/setup-zig` step omits `version` on purpose.** With no `version` input, the pinned action reads `minimum_zig_version` from the root `build.zig.zon`, and each job's log records `Resolved Zig version 0.16.0`. Do not suggest adding a `version` input, which would duplicate the pin in a second place that can drift from it. The macOS bundle gate validates both CLAP bundles and checks the emitted AU type, plist rewrites, signatures and provenance. Linux checks the non-Darwin test and host-harness path.
 - **Jobs run on `ubuntu-latest` unless they need macOS.** This is platform-independent static analysis, and the macOS runner bills at ten times the rate. Do not suggest matrixing these jobs across operating systems.

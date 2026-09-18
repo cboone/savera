@@ -4,7 +4,7 @@ applyTo: "docs/**/*.md"
 
 # Reviewing this project's plans, ADRs and notes
 
-For repo-wide conventions, see [`copilot-instructions.md`](copilot-instructions.md) and `AGENTS.md` at the repository root.
+For repo-wide conventions, see [`copilot-instructions.md`](../copilot-instructions.md) and `AGENTS.md` at the repository root.
 
 These files are a decision record, not specification prose. Most of what looks like a defect in them is a deliberate convention.
 

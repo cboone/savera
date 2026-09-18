@@ -40,7 +40,7 @@ Build options and the descriptor version carry provenance, the main-thread init 
 
 ### #343 `write-realtime-audio-code` (open)
 
-**Phase 0.** [ADR 0007](../adr/0007-no-allocation-on-the-audio-thread.md)'s rules: nothing reachable from `process()` allocates, locks or makes a syscall; every capacity derived in one place with its derivation; single-writer relaxed atomics drained on the main thread; buffers sized once at `activate`; FPCR flush-to-zero around `process()`; runtime `if` at trust boundaries. `.github/zig.instructions.md` carries the review rules built on them.
+**Phase 0.** [ADR 0007](../adr/0007-no-allocation-on-the-audio-thread.md)'s rules: nothing reachable from `process()` allocates, locks or makes a syscall; every capacity derived in one place with its derivation; single-writer relaxed atomics drained on the main thread; buffers sized once at `activate`; FPCR flush-to-zero around `process()`; runtime `if` at trust boundaries. `.github/instructions/zig.instructions.md` carries the review rules built on them.
 
 **Divergence.** The issue's verification section centres on Thread Sanitizer, as fosforo's did. Savera starts no thread and every cross-thread datum has one writer, so there is no ordering between writers to verify, and the instrument is a source canary asserting that nothing under `src/` spawns a thread. The issue does not mention that a shipped ReleaseFast build removes `std.debug.assert`, which is why Savera's unit suite runs in three optimize modes and trust boundaries never use `assert`.
 

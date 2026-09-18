@@ -4,11 +4,11 @@ For full project conventions, see AGENTS.md in the repository root. It carries t
 
 ## Scoped Instructions
 
-Path-scoped review instructions live alongside this file:
+Path-scoped review instructions live in `instructions/`, the only directory Copilot reads them from:
 
-- [`docs.instructions.md`](docs.instructions.md), for `docs/**/*.md`: how plans, ADRs and notes record decisions, why point-in-time statements are deliberate, why done plans are never corrected, and why the preserved brainstorm in `docs/design/` is not maintained prose.
-- [`actions.instructions.md`](actions.instructions.md), for `.github/workflows/*.yml` and `.github/dependabot.yml`: the pinning conventions, why no text or secret-scanning workflow carries `paths-ignore`, and why the typos job pins a checksum.
-- [`zig.instructions.md`](zig.instructions.md), for `**/*.zig` and `**/*.zig.zon`: conventions the ADRs already settled, applied to the Phase 1 instrument shell.
+- [`docs.instructions.md`](instructions/docs.instructions.md), for `docs/**/*.md`: how plans, ADRs and notes record decisions, why point-in-time statements are deliberate, why done plans are never corrected, and why the preserved brainstorm in `docs/design/` is not maintained prose.
+- [`actions.instructions.md`](instructions/actions.instructions.md), for `.github/workflows/*.yml` and `.github/dependabot.yml`: the pinning conventions, why no text or secret-scanning workflow carries `paths-ignore`, and why the typos job pins a checksum.
+- [`zig.instructions.md`](instructions/zig.instructions.md), for `**/*.zig` and `**/*.zig.zon`: conventions the ADRs already settled, applied to the Phase 1 instrument shell.
 
 ## PR Review
 

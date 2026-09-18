@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches: [main]
-    paths-ignore: ["docs/**", "*.md", "LICENSE", "AGENTS.md", "CLAUDE.md", ".github/*.instructions.md"]
+    paths-ignore: ["docs/**", "*.md", "LICENSE", "AGENTS.md", "CLAUDE.md", ".github/instructions/**"]
   pull_request:
   workflow_dispatch:
 
