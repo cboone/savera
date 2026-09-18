@@ -6,7 +6,7 @@ Savera is Hindi and Urdu for "dawn", said sa-VEH-ra.
 
 ## Status
 
-Early development, and nothing to install. No release has been cut, and nothing builds or loads yet: the repository holds its foundation, its twenty-three architecture decisions, and [the build plan](docs/plans/2026-09-13-savera-build-plan.md) the rest is built from.
+Early development, with a buildable integration shell. `zig build` assembles `zig-out/Savera.clap`; `zig build smoke` exercises its host boundary. No release has been cut.
 
 What it is meant to become: a peti whose reed, air supply and wooden box are modelled from the free-reed acoustics literature and calibrated against recordings, so it sounds like a harmonium rather than an organ patch. Loudness lives in continuous bellows pressure from an expression pedal, a breath controller, aftertouch or a synthesized pumping generator. Chords sag because every reed draws on one shared air supply. Keys are valves, so pressing one partway brings a note in quieter, slower and slightly flat. Past the acoustic instrument, every physical quantity is modulatable, and the model can glide in pitch and play the 22 shruti, which no real free reed can do.
 
@@ -17,7 +17,7 @@ Eleven phases. [The build plan](docs/plans/2026-09-13-savera-build-plan.md) hold
 | Phase | Scope                                                                                     | Status   |
 | ----- | ----------------------------------------------------------------------------------------- | -------- |
 | 0     | Repository foundation: agent config, CI, lint configuration, ADRs, notes                  | Complete |
-| 1     | The shell in both formats, with a placeholder sine voice: loads in Logic as an instrument | Planned  |
+| 1     | The shell in both formats, with a placeholder sine voice: loads in Logic as an instrument | Complete |
 | 2     | The single reed: the Python harness, the Zig model, the oracle                            | Planned  |
 | 3     | Parameters, state, the modulation flags and CC learn                                      | Planned  |
 | 4     | The engine: voices, block splitting, the resampler, latency and tail                      | Planned  |
@@ -38,9 +38,11 @@ Planned, for the first release:
 - A host: Logic Pro, which loads the Audio Unit as a software instrument, or REAPER or Bitwig Studio, which load the CLAP.
 - Something to play the bellows with: an expression pedal, a breath controller, aftertouch, or the built-in pump generator.
 
-## Installation
+## Building
 
-Nothing to install yet. v0.1.0 will ship as one signed, notarized installer package carrying both the CLAP and the Audio Unit ([ADR 0021](docs/adr/0021-distribute-as-a-notarized-pkg.md)).
+Use `zig build` for the direct CLAP, `zig build test` for unit tests, `zig build smoke` for the host-boundary fixture, and `zig build audio-unit` for the CMake projection. The installer remains a Phase 7 release artifact.
+
+The shell needs Zig 0.16.0, CMake and clap-validator 0.4.1 on an Apple Silicon Mac. `zig build test-safe` and `zig build test-release` run both release test modes; `zig build validate` validates the direct CLAP. `zig build --release=fast install-plugins` builds and copies both formats into the user plugin folders and reports installed hashes and provenance. The default signature is ad-hoc; release signing reads `SAVERA_SIGNING_IDENTITY` from the environment.
 
 ## Contributing
 

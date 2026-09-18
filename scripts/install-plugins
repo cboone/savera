@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# install-plugins — copy Savera's built bundles into the user plug-in folders
+set -euo pipefail
+readonly CLAP_SOURCE="zig-out/Savera.clap"
+readonly AU_SOURCE="build/assets/Savera.component"
+function install_one() {
+	local source="${1}" destination="${2}"
+	[[ -d "${source}" ]] || {
+		echo "install-plugins: missing ${source}" >&2
+		return 66
+	}
+	mkdir -p "${destination}"
+	ditto "${source}" "${destination}/${source##*/}"
+	shasum -a 256 "${destination}/${source##*/}/Contents/MacOS/"* | sed "s#${destination}/##"
+	./scripts/read-provenance --check "${destination}/${source##*/}"
+}
+function main() {
+	[[ ${#} -eq 0 ]] || {
+		echo "usage: install-plugins" >&2
+		return 64
+	}
+	./scripts/read-provenance --check "${CLAP_SOURCE}" "${AU_SOURCE}"
+	/usr/bin/codesign --verify --strict "${CLAP_SOURCE}"
+	/usr/bin/codesign --verify --strict "${AU_SOURCE}"
+	install_one "${CLAP_SOURCE}" "${HOME}/Library/Audio/Plug-Ins/CLAP"
+	install_one "${AU_SOURCE}" "${HOME}/Library/Audio/Plug-Ins/Components"
+}
+main "$@"

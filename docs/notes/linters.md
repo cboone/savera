@@ -99,4 +99,4 @@ Never commit a secret-shaped string to test this, even a fake one: this reposito
 
 ## Shell
 
-There are no shell scripts before Phase 1, so shfmt and shellcheck have nothing to judge yet. The `.editorconfig` shell section arrives with the first script, and its trap is recorded in that file now: shfmt reads `.editorconfig` all-or-nothing, so `shfmt -d` honours it and `shfmt -i 2 -d` silently ignores it.
+Phase 1 has extensionless shell scripts under `scripts/` and `cmake/`. `.editorconfig` names both sets and shfmt reads that profile all-or-nothing: `shfmt -d` honours it and `shfmt -i 2 -d` silently ignores it. The CI shell job installs and reports shfmt 3.13.1 and ShellCheck 0.11.0, discovers tracked files by shebang, and checks exactly that list. The Phase 1 SC2086 plant was discovered at `cmake/set-au-display-name:17` and rejected by [run 35121659836](https://github.com/cboone/savera/actions/runs/35121659836), while its shfmt check passed.

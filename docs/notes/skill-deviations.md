@@ -1,5 +1,9 @@
 # Skill deviations
 
+## Phase 1 shell tooling
+
+`write-bash-scripts` supplies Bash 3.2-compatible structure and ShellCheck validation for the extensionless scripts under `scripts/` and `cmake/`. The project rule against `markdownlint-cli2 --fix` continues to replace the Markdown skill's generic fixer with `npm run format` followed by `npm run lint:md`.
+
 The build plan found that the catalog's Zig and audio skills were unwritten when this project started, so the first phases are done by hand from fosforo and springer. This note records every rule written by hand that a catalog skill would otherwise supply, against the issue that asks for that skill, so the skills can be written from this project. It also records where an installed skill was scoped down, replaced, or found wrong.
 
 **The inclusion rule.** An issue gets an entry when a phase wrote any of its rules into a file by hand, whether as configuration or as a recorded decision. Each entry says what was written, where, and where it diverges from the issue body. Later phases append to the same entries rather than starting new ones.
@@ -7,6 +11,12 @@ The build plan found that the catalog's Zig and audio skills were unwritten when
 The issues are in [`cboone/agent-harness-plugins`](https://github.com/cboone/agent-harness-plugins). Their states were read on 2026-09-14.
 
 ## Catalog issues
+
+Phase 1 applies the instrument-specific Zig scaffold by hand because the installed Zig CLI scaffold does not define a CLAP/AUv2 instrument. `build.zig` shares the direct CLAP and object module factory and preprocesses before translation (#344). `src/clap/c.zig` asserts the expected 64-bit size and field offsets of every Phase 1 ABI structure, including streams, MIDI events and port metadata. The fixed-capacity sine has no allocator, lock or syscall on its process path (#343).
+
+Signing reads only `SAVERA_SIGNING_IDENTITY`, defaults to ad-hoc, and adds timestamp/hardened-runtime options together for a real identity (#340). CMake signs after wrapper generation and plist rewrites. Re-signing deliberately removes the prior signature before signing the rebuilt bundle, without a force flag. The signature checker captures the complete `codesign` output before inspecting it, avoiding `grep -q`'s SIGPIPE under `pipefail`.
+
+Build options and the descriptor version carry provenance, the main-thread init callback logs the marker, and the reader selects the longest syntactically valid marker (#341). An embedded-script test pins the prefix. Temporary reader fixtures confirmed longest-valid selection and exit 65 for a malformed marker. CI uses the released validator action (#342), reads the emitted AU type rather than the unreachable wrapper feature warning, and pins and reports both shell tools before tracked-tree shebang discovery (#346). The four plants and direct signed reverts are retained in the phase history.
 
 ### #339 `scaffold-zig-cli` (open)
 
@@ -30,7 +40,7 @@ The issues are in [`cboone/agent-harness-plugins`](https://github.com/cboone/age
 
 ### #343 `write-realtime-audio-code` (open)
 
-**Phase 0.** [ADR 0007](../adr/0007-no-allocation-on-the-audio-thread.md)'s rules: nothing reachable from `process()` allocates, locks or makes a syscall; every capacity derived in one place with its derivation; single-writer relaxed atomics drained on the main thread; buffers sized once at `activate`; FPCR flush-to-zero around `process()`; runtime `if` at trust boundaries. `.github/zig.instructions.md` carries the review rules built on them.
+**Phase 0.** [ADR 0007](../adr/0007-no-allocation-on-the-audio-thread.md)'s rules: nothing reachable from `process()` allocates, locks or makes a syscall; every capacity derived in one place with its derivation; single-writer relaxed atomics drained on the main thread; buffers sized once at `activate`; FPCR flush-to-zero around `process()`; runtime `if` at trust boundaries. `.github/instructions/zig.instructions.md` carries the review rules built on them.
 
 **Divergence.** The issue's verification section centres on Thread Sanitizer, as fosforo's did. Savera starts no thread and every cross-thread datum has one writer, so there is no ordering between writers to verify, and the instrument is a source canary asserting that nothing under `src/` spawns a thread. The issue does not mention that a shipped ReleaseFast build removes `std.debug.assert`, which is why Savera's unit suite runs in three optimize modes and trust boundaries never use `assert`.
 

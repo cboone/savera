@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# read-provenance — extract Savera build provenance from a bundle or Mach-O
+set -euo pipefail
+
+readonly E_USAGE=64
+readonly E_DATAERR=65
+readonly E_NOINPUT=66
+readonly MARKER_PREFIX="savera-build: "
+readonly MARKER_PATTERN="${MARKER_PREFIX}[^[:cntrl:]]*"
+readonly VALID_MARKER_PATTERN='^savera-build: branch=[^[:space:]]+ commit=([0-9a-f]{7,40}|unknown) dirty=(true|false) version=[0-9]+\.[0-9]+\.[0-9]+([+-][[:alnum:].-]+)?$'
+
+function usage() { echo "usage: read-provenance [--check] [--short] <path>..." >&2; }
+function binary_in() {
+	local path="${1}"
+	if [[ -f "${path}" ]]; then
+		echo "${path}"
+		return
+	fi
+	if [[ -d "${path}" ]]; then
+		local candidate
+		for candidate in "${path}"/Contents/MacOS/*; do [[ -f "${candidate}" ]] && {
+			echo "${candidate}"
+			return
+		}; done
+	fi
+	return 1
+}
+function marker_in() {
+	local binary="${1}" match best="" malformed=""
+	while IFS= read -r match; do
+		if [[ "${match}" =~ ${VALID_MARKER_PATTERN} ]]; then
+			[[ ${#match} -le ${#best} ]] || best="${match}"
+		else
+			malformed="${match}"
+		fi
+	done < <(LC_ALL=C /usr/bin/grep -a -o -E "${MARKER_PATTERN}" "${binary}" || true)
+	[[ -n "${best}" ]] || best="${malformed}"
+	[[ "${best}" == "${MARKER_PREFIX}" ]] && best=""
+	echo "${best}"
+}
+function main() {
+	local check=false short=false path binary marker failed=false
+	while [[ ${#} -gt 0 ]]; do
+		case "${1}" in --check) check=true ;; --short) short=true ;; --*)
+			usage
+			return "${E_USAGE}"
+			;;
+		*) break ;; esac
+		shift
+	done
+	[[ ${#} -gt 0 ]] || {
+		usage
+		return "${E_USAGE}"
+	}
+	for path in "$@"; do
+		binary="$(binary_in "${path}")" || {
+			echo "read-provenance: cannot read ${path}" >&2
+			return "${E_NOINPUT}"
+		}
+		marker="$(marker_in "${binary}")"
+		if [[ -z "${marker}" ]]; then
+			[[ "${check}" == true ]] && failed=true
+			[[ "${short}" == true ]] && echo "(no provenance)" || echo "${path}: (no provenance)"
+			continue
+		fi
+		if [[ ! "${marker}" =~ ${VALID_MARKER_PATTERN} ]]; then
+			echo "read-provenance: malformed marker in ${path}" >&2
+			return "${E_DATAERR}"
+		fi
+		if [[ "${short}" == true ]]; then
+			local rest="${marker#*branch=}"
+			echo "${rest%% *} ${marker#*commit=}" | awk '{print $1, $2}'
+		else echo "${path}: ${marker}"; fi
+	done
+	[[ "${failed}" == false ]] || return "${E_NOINPUT}"
+}
+main "$@"

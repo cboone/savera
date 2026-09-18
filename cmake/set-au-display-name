@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# set-au-display-name — write Savera's Audio Unit display metadata
+set -euo pipefail
+readonly NAME="Catamount: Savera"
+readonly DESCRIPTION="A physically modelled Indian hand harmonium."
+function main() {
+	local check=false plist=""
+	[[ "${1:-}" == "--check" ]] && {
+		check=true
+		shift
+	}
+	[[ ${#} -eq 1 ]] || {
+		echo "usage: set-au-display-name [--check] <Info.plist>" >&2
+		return 64
+	}
+	plist="${1}"
+	[[ -f "${plist}" ]] || return 66
+	if [[ "${check}" == true ]]; then
+		[[ "$(plutil -extract AudioComponents.0.name raw -o - -- "${plist}")" == "${NAME}" && "$(plutil -extract AudioComponents.0.description raw -o - -- "${plist}")" == "${DESCRIPTION}" ]] || return 65
+		return
+	fi
+	plutil -replace AudioComponents.0.name -string "${NAME}" -- "${plist}"
+	plutil -replace AudioComponents.0.description -string "${DESCRIPTION}" -- "${plist}"
+}
+main "$@"

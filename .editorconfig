@@ -31,13 +31,13 @@ indent_size = 2
 [*.md]
 trim_trailing_whitespace = false
 
-# The shell section arrives with Phase 1's first script. It will carry
-# shfmt-specific keys, which shfmt reads from this file natively. That support
-# is all-or-nothing: passing any formatting flag makes shfmt ignore
-# .editorconfig entirely, so `shfmt -d` is correct and `shfmt -i 2 -d` silently
-# is not. Scripts under scripts/ and cmake/ have no extension, so a bare
-# [*.sh] section would not reach them and each has to be named individually.
-#
+# shfmt reads this profile natively. Formatting flags would override it.
+[{scripts/*,cmake/narrow-au-resource-usage,cmake/set-au-display-name}]
+indent_style = tab
+binary_next_line = false
+switch_case_indent = false
+space_redirects = false
+
 # A Python section arrives with Phase 2's harness. ruff ignores this file, so
 # that section and ruff.toml will be two statements of one style, with
 # ruff.toml the authority.

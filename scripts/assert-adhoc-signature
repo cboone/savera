@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# assert-adhoc-signature — verify every named bundle has an ad-hoc signature
+set -euo pipefail
+function main() {
+	[[ ${#} -gt 0 ]] || {
+		echo "usage: assert-adhoc-signature <bundle>..." >&2
+		return 64
+	}
+	local bundle details
+	for bundle in "$@"; do
+		[[ -d "${bundle}" ]] || return 66
+		/usr/bin/codesign --verify --deep --strict --verbose=2 "${bundle}" || return 65
+		details="$(/usr/bin/codesign -dvvv "${bundle}" 2>&1)" || return 65
+		[[ "${details}" == *'Signature=adhoc'* ]] || return 65
+	done
+}
+main "$@"
